@@ -2,7 +2,6 @@ import { useRoute } from "./lib";
 import { MatchesPage } from "./components/MatchesPage";
 import { MatchPage } from "./components/MatchPage";
 import { Tooltips } from "./components/ui";
-import { FontTuner } from "./components/FontTuner";
 
 export function App() {
   const route = useRoute();
@@ -11,7 +10,6 @@ export function App() {
     <>
       {route.page === "match" ? <MatchPage league={route.league} id={route.id} player={route.player} /> : <MatchesPage date={route.date} />}
       <Tooltips />
-      <FontTuner />
     </>
   );
 }

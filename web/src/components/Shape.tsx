@@ -32,13 +32,13 @@ export function FormationButton({ m, side }: { m: MatchDetail; side: Side }) {
       className="w-[min(380px,calc(100vw-24px))]"
       trigger={(open) => (
         <span
-          className={`relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1 font-display text-lg font-extrabold leading-none tnum hover:bg-terrace ${open ? "bg-terrace" : ""}`}
+          className={`relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1 font-display text-[22px] font-extrabold leading-none tnum hover:bg-terrace ${open ? "bg-terrace" : ""}`}
           data-tip={alerts.length ? alerts.join("\n") + "\n\nClick for the full shape story." : "How this team lines up and shifts. Click for details."}
           data-tip-title="Formation"
         >
           {l.formation ?? s?.usual}
           {alerts.length > 0 && <span className="size-1.5 rounded-full bg-yellow" aria-label="Worth a look" />}
-          <span className="font-ui text-[10px] font-normal text-mute">▾</span>
+          <span className="font-ui text-[12px] font-normal text-mute">▾</span>
         </span>
       )}
     >
@@ -55,7 +55,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
   const total = s.counts.reduce((a, c) => a + c.count, 0);
   const c = s.coach;
   return (
-    <div className="space-y-3 font-ui text-[13px] leading-snug" style={{ ["--team" as string]: color }}>
+    <div className="space-y-3 font-ui text-[14.5px] leading-snug" style={{ ["--team" as string]: color }}>
       <header>
         <div className="flex items-baseline justify-between gap-2">
           <span className="font-display text-2xl font-extrabold leading-none">
@@ -84,7 +84,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
 
       {c && (c.in_possession || c.out_of_possession) && (
         <section>
-          <div className="mb-1 flex items-center justify-between text-[11.5px] font-semibold text-mute">
+          <div className="mb-1 flex items-center justify-between text-[12.5px] font-semibold text-mute">
             <span>How they shift</span>
             <span className="font-normal" data-tip="Hand-written from what's known about the coach's methods, not measured from data.">
               coach notes{c.confidence ? ` · ${c.confidence} confidence` : ""}
@@ -116,7 +116,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
 
       {s.outOfPosition.length > 0 && (
         <section>
-          <div className="mb-1 text-[11.5px] font-semibold text-mute">Out of position today</div>
+          <div className="mb-1 text-[12.5px] font-semibold text-mute">Out of position today</div>
           <ul className="space-y-0.5">
             {s.outOfPosition.map((o) => (
               <li key={o.playerId} className="text-chalk/90">
@@ -130,7 +130,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
 
       {s.changes.length > 0 && (
         <section>
-          <div className="mb-1 text-[11.5px] font-semibold text-mute">During the match</div>
+          <div className="mb-1 text-[12.5px] font-semibold text-mute">During the match</div>
           <ul className="space-y-1">
             {s.changes.map((ch, i) => (
               <li key={i} className="grid grid-cols-[38px_minmax(0,1fr)] gap-2 text-chalk/90">
@@ -139,13 +139,13 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[11px] text-faint">Inferred from who came on and off; the coach may have kept the shape.</p>
+          <p className="mt-1 text-[12px] text-faint">Inferred from who came on and off; the coach may have kept the shape.</p>
         </section>
       )}
 
       {total > 0 && (
         <section>
-          <div className="mb-1 flex items-center justify-between text-[11.5px] font-semibold text-mute">
+          <div className="mb-1 flex items-center justify-between text-[12.5px] font-semibold text-mute">
             <span>Last {s.recent.length} matches</span>
             {s.fluidity && (
               <span className="font-normal text-chalk/80" data-tip={FLUIDITY[s.fluidity].body + (c?.fluidity && c.fluidity !== s.fluidity ? `\nCoach notes call the team ${c.fluidity}.` : "")}>
@@ -166,7 +166,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
           </div>
           <ul className="mt-2 space-y-0.5">
             {s.recent.map((r) => (
-              <li key={r.matchId} className="grid grid-cols-[44px_40px_minmax(0,1fr)_auto_52px] items-center gap-1.5 text-[12px]">
+              <li key={r.matchId} className="grid grid-cols-[44px_40px_minmax(0,1fr)_auto_52px] items-center gap-1.5 text-[13px]">
                 <span className="text-mute tnum">{shortDate(r.date)}</span>
                 <span className="truncate text-faint">{r.comp}</span>
                 <span className="truncate">{r.home ? "vs" : "at"} {r.opponent}</span>
@@ -177,7 +177,7 @@ export function ShapeCard({ m, side }: { m: MatchDetail; side: Side }) {
           </ul>
         </section>
       )}
-      <p className="text-[11px] text-faint" {...tip("formation")}>Formations from FotMob lineups; positions from FotMob squad data.</p>
+      <p className="text-[12px] text-faint" {...tip("formation")}>Formations from FotMob lineups; positions from FotMob squad data.</p>
     </div>
   );
 }

@@ -24,6 +24,17 @@
   --font-display: "Sofia Sans Extra Condensed", "Arial Narrow", sans-serif;
   --font-ui: "Sofia Sans Semi Condensed", "Sofia Sans", system-ui, sans-serif;
   --font-sans: "Sofia Sans", system-ui, sans-serif;
+
+  /* Type scale, tuned by the owner to 1.1x Tailwind's defaults (line heights stay as ratios). */
+  --text-xs: 0.825rem;
+  --text-sm: 0.9625rem;
+  --text-base: 1.1rem;
+  --text-lg: 1.2375rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.65rem;
+  --text-3xl: 2.0625rem;
+  --text-4xl: 2.475rem;
+  --text-5xl: 3.3rem;
 }
 
 :root {

@@ -65,8 +65,8 @@ function TipBox({ title, body, rect }: TipState) {
     <div
       ref={ref}
       role="tooltip"
-      data-fs="tooltip"
-      className="pointer-events-none fixed z-[70] max-w-[min(340px,calc(100vw-16px))] whitespace-pre-line rounded-lg border border-rule bg-terrace px-3 py-2 text-[13px] leading-snug text-chalk/90 shadow-xl"
+     
+      className="pointer-events-none fixed z-[70] max-w-[min(340px,calc(100vw-16px))] whitespace-pre-line rounded-lg border border-rule bg-terrace px-3 py-2 text-[14.5px] leading-snug text-chalk/90 shadow-xl"
       style={pos ?? { left: 0, top: 0, visibility: "hidden" }}
     >
       {title && <div className="mb-0.5 font-semibold text-chalk">{title}</div>}
@@ -116,7 +116,7 @@ export function Rating({ value, className = "", big }: { value?: number; classNa
   if (value == null || !isFinite(value) || value <= 0) return null;
   return (
     <span
-      className={`inline-grid place-items-center rounded font-ui font-bold tnum text-[#0d1216] ${big ? "min-w-9 px-1.5 py-0.5 text-sm" : "min-w-7 px-1 text-[11px] leading-[16px]"} ${className}`}
+      className={`inline-grid place-items-center rounded font-ui font-bold tnum text-[#0d1216] ${big ? "min-w-9 px-1.5 py-0.5 text-sm" : "min-w-7 px-1 text-[12px] leading-[16px]"} ${className}`}
       style={{ background: ratingColor(value) }}
       {...tip("rating")}
     >
@@ -131,7 +131,7 @@ export function FormPills({ results, size = "md" }: { results: FixtureRow[]; siz
       {results.map((r) => (
         <span
           key={r.id}
-          className={`grid place-items-center rounded-[3px] font-ui font-bold text-[#0d1216] ${size === "sm" ? "size-4 text-[10px]" : "size-[18px] text-[11px]"}`}
+          className={`grid place-items-center rounded-[3px] font-ui font-bold text-[#0d1216] ${size === "sm" ? "size-4 text-[11px]" : "size-[18px] text-[12px]"}`}
           style={{ background: resultColor(r.result) }}
           data-tip={`${r.result === "W" ? "Won" : r.result === "L" ? "Lost" : "Drew"} ${r.score} ${r.home ? "vs" : "at"} ${r.opponent.name}\n${r.comp} · ${shortDate(r.date)}`}
         >
@@ -166,7 +166,7 @@ export function Modal({ onClose, label, className = "", children }: { onClose: (
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return createPortal(
-    <div data-fs="modal" className="fixed inset-0 z-50 grid place-items-center sm:p-6" role="dialog" aria-modal="true" aria-label={label}>
+    <div className="fixed inset-0 z-50 grid place-items-center sm:p-6" role="dialog" aria-modal="true" aria-label={label}>
       <button className="absolute inset-0 bg-black/70" onClick={onClose} aria-label="Close" />
       <div className={`modal-in relative flex h-full w-full flex-col overflow-hidden bg-night shadow-2xl sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl sm:border sm:border-rule ${className}`}>
         <button onClick={onClose} className="absolute right-3 top-3 z-10 rounded-full bg-black/50 px-3 py-1 text-sm hover:bg-black/70">
@@ -191,7 +191,7 @@ export function Segmented<T extends string>({
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
           data-tip={o.title}
-          className={`whitespace-nowrap rounded-md font-ui font-semibold transition-colors ${size === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-1 text-[13px]"} ${o.value === value ? "bg-terrace text-chalk shadow" : "text-mute hover:text-chalk"}`}
+          className={`whitespace-nowrap rounded-md font-ui font-semibold transition-colors ${size === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-1 text-[14.5px]"} ${o.value === value ? "bg-terrace text-chalk shadow" : "text-mute hover:text-chalk"}`}
         >
           {o.label}
         </button>
@@ -221,7 +221,7 @@ export function Popover({ trigger, children, align = "left", className = "" }: {
         {trigger(open)}
       </button>
       {open && (
-        <div data-fs="modal" className={`pop-in absolute top-full z-40 mt-2 rounded-xl border border-rule bg-stand p-3 shadow-2xl ${align === "right" ? "right-0" : "left-0"} ${className}`}>
+        <div className={`pop-in absolute top-full z-40 mt-2 rounded-xl border border-rule bg-stand p-3 shadow-2xl ${align === "right" ? "right-0" : "left-0"} ${className}`}>
           {children}
         </div>
       )}
@@ -232,7 +232,7 @@ export function Popover({ trigger, children, align = "left", className = "" }: {
 /** Section label inside panels: small, sentence case, muted. */
 export function Label({ children, aside, className = "" }: { children: ReactNode; aside?: ReactNode; className?: string }) {
   return (
-    <div className={`flex items-baseline justify-between gap-2 font-ui text-[12px] font-semibold text-mute ${className}`}>
+    <div className={`flex items-baseline justify-between gap-2 font-ui text-[13px] font-semibold text-mute ${className}`}>
       <span>{children}</span>
       {aside && <span className="font-normal">{aside}</span>}
     </div>
@@ -244,7 +244,7 @@ export function RankNote({ rank, of = 20, className = "" }: { rank?: number; of?
   if (!rank) return null;
   const q = Math.ceil(of / 4);
   const cls = rank <= q ? "text-good" : rank > of - q ? "text-bad" : "text-mute";
-  return <span className={`font-ui text-[11px] tnum ${cls} ${className}`} data-tip={`${ordinal(rank)} of ${of} in the league`}>{ordinal(rank)}</span>;
+  return <span className={`font-ui text-[12px] tnum ${cls} ${className}`} data-tip={`${ordinal(rank)} of ${of} in the league`}>{ordinal(rank)}</span>;
 }
 
 export function Kit({ color, alt, number, size = 30, probable, className = "" }: { color: string; alt?: string; number?: string; size?: number; probable?: boolean; className?: string }) {

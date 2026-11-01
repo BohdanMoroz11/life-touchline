@@ -8,7 +8,7 @@ export function MatchesPage({ date }: { date?: string }) {
   const total = q.data?.leagues.reduce((s, l) => s + l.matches.length, 0) ?? 0;
   const live = q.data?.leagues.reduce((s, l) => s + l.matches.filter((m) => m.state === "in").length, 0) ?? 0;
   return (
-    <div data-fs="list" className="mx-auto min-h-dvh max-w-[1320px] px-4 pb-16 sm:px-6">
+    <div className="mx-auto min-h-dvh max-w-[1320px] px-4 pb-16 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 pb-5 pt-6">
         <div>
           <h1 className="font-display text-5xl font-black leading-none tracking-tight">Touchline</h1>
@@ -85,8 +85,8 @@ function Side({ m, side, scorers }: { m: MatchCard; side: "home" | "away"; score
     <span className={`flex min-w-0 items-center gap-2 ${right ? "flex-row-reverse text-right" : ""}`}>
       <Crest src={t.logo} className="size-7" />
       <span className="min-w-0 leading-tight">
-        <span className={`block truncate font-ui text-[15px] font-semibold ${dim ? "text-chalk/60" : ""}`}>{t.short}</span>
-        <span className="block truncate font-ui text-[11px] text-mute" data-tip-overflow data-tip={scorers}>
+        <span className={`block truncate font-ui text-[16.5px] font-semibold ${dim ? "text-chalk/60" : ""}`}>{t.short}</span>
+        <span className="block truncate font-ui text-[12px] text-mute" data-tip-overflow data-tip={scorers}>
           {scorers || (t.record ? `${t.record}${t.rank ? ` · ${ordinal(t.rank)}` : ""}` : "")}
         </span>
       </span>

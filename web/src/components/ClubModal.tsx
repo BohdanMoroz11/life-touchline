@@ -43,8 +43,8 @@ export function ClubModal({ team, m, onClose }: { team: TeamDetail; m: MatchDeta
         {tab === "about" && (
           <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
             <div className="space-y-4">
-              {l?.identity && <p className="text-[15px] leading-relaxed text-chalk/90">{l.identity}</p>}
-              {l?.history && <p className="text-[15px] leading-relaxed text-chalk/75">{l.history}</p>}
+              {l?.identity && <p className="text-[16.5px] leading-relaxed text-chalk/90">{l.identity}</p>}
+              {l?.history && <p className="text-[16.5px] leading-relaxed text-chalk/75">{l.history}</p>}
               {!l && <p className="text-mute">No club notes written for {team.name} yet.</p>}
               <div className="grid gap-4 sm:grid-cols-2">
                 {l?.rivals && l.rivals.length > 0 && (
@@ -118,7 +118,7 @@ export function ClubModal({ team, m, onClose }: { team: TeamDetail; m: MatchDeta
             {team.news.map((n, i) => (
               <li key={i}>
                 <a href={n.link} target="_blank" rel="noreferrer" className="group block">
-                  <div className="font-ui text-[15px] font-semibold group-hover:underline">{n.headline}</div>
+                  <div className="font-ui text-[16.5px] font-semibold group-hover:underline">{n.headline}</div>
                   {n.description && <p className="mt-0.5 text-sm text-mute">{n.description}</p>}
                   {n.published && <div className="mt-0.5 text-xs text-faint">{shortDate(n.published)}</div>}
                 </a>

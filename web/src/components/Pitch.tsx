@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Lineup, LineupPlayer, MatchDetail, Shot, Side, SquadPlayer } from "../../../shared/types";
 import { accent, euros, go, minuteNum, playerHash, ratingColor, useSize } from "../lib";
 import { tip } from "../glossary";
 import { Kit } from "./ui";
-import { useTunerScale } from "./FontTuner";
 
 /** Kit colors for a side: the match uniform when ESPN has it, else the club colors. */
 export function kitOf(m: MatchDetail, side: Side) {
@@ -132,27 +131,105 @@ function seasonLine(sp?: SquadPlayer) {
   return bits.length ? bits.join(" ") : sp.apps ? `${sp.apps} apps` : undefined;
 }
 
-function Counter({ p, side, m, vertical, size, showSeason, sp }: { p: LineupPlayer; side: Side; m: MatchDetail; vertical: boolean; size: number; showSeason: boolean; sp?: SquadPlayer }) {
+/** What a counter shows under the face: out-of-position tag, sub minute or the season line. */
+// A cramped pitch keeps only the out-of-position tag; the rest stays in the tooltip.
+function underLine(p: LineupPlayer, side: Side, m: MatchDetail, showSeason: boolean, compact: boolean, sp?: SquadPlayer) {
+  const oop = m.shape?.[side]?.outOfPosition.find((o) => o.playerId === p.id);
+  const line = !compact && (showSeason || m.state === "pre") ? seasonLine(sp) : undefined;
+  const subOut = compact ? undefined : p.marks.subOut;
+  return { oop, line, subOut, has: !!(oop || subOut || line) };
+}
+
+const NAME_PX = 14;
+const BADGE_TOP = 4; // the rating badge pokes above the face
+const LINE_PX = 12;
+let measureCtx: CanvasRenderingContext2D | null = null;
+function textWidth(t: string, px: number, weight = 600) {
+  measureCtx ??= document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return t.length * px * 0.5;
+  measureCtx.font = `${weight} ${px}px "Sofia Sans Semi Condensed", sans-serif`;
+  return measureCtx.measureText(t).width;
+}
+
+type Placed = { key: string; side: Side; p: LineupPlayer; x: number; y: number; w: number; h: number };
+
+/**
+ * Pixel positions for all 22 counters. Starts from the formation spots, then nudges overlapping counters apart,
+ * mostly sideways along their line so the shape still reads, and keeps everyone inside the touchlines.
+ */
+function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: number, ph: number, size: number, showSeason: boolean, compact: boolean, squad: SquadIndex): Placed[] {
+  const maxLabel = size * 2.3;
+  const items: Placed[] = sides.flatMap((side) =>
+    m.lineups[side].starters.map((p) => {
+      const pos = spot(p, side, vertical);
+      const extra = underLine(p, side, m, showSeason, compact, squad[side].get(p.id)).has;
+      const w = Math.max(size + 18, Math.min(maxLabel, textWidth(lastName(p.short), NAME_PX) + 10));
+      const h = BADGE_TOP + size + NAME_PX + 6 + (extra ? LINE_PX + 4 : 0);
+      return { key: `${side}${p.id}`, side, p, x: (pos.left / 100) * pw, y: (pos.top / 100) * ph, w, h };
+    }),
+  );
+  const GAP = 2;
+  const clamp = (it: Placed) => {
+    it.x = Math.min(pw - it.w / 2 - 1, Math.max(it.w / 2 + 1, it.x));
+    it.y = Math.min(ph - it.h / 2 - 1, Math.max(it.h / 2 + 1, it.y));
+  };
+  items.forEach(clamp);
+  for (let iter = 0; iter < 150; iter++) {
+    let moved = false;
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i];
+        const b = items[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const ox = (a.w + b.w) / 2 + GAP - Math.abs(dx);
+        const oy = (a.h + b.h) / 2 + GAP - Math.abs(dy);
+        if (ox <= 0 || oy <= 0) continue;
+        moved = true;
+        // Lines run across the pitch: horizontal pitch -> lateral is y. Small depth overlaps go along depth instead.
+        const lateralIsY = !vertical;
+        const lat = lateralIsY ? oy : ox;
+        const dep = lateralIsY ? ox : oy;
+        // A goalkeeper tucked against the back line moves up a bit rather than shoving the whole line wide.
+        const reach = 0.45 * Math.min(lateralIsY ? Math.min(a.w, b.w) : Math.min(a.h, b.h), 40);
+        const alongDepth = dep < lat && dep <= Math.max(14, reach);
+        if (lateralIsY !== alongDepth) {
+          const d = (dy === 0 ? (i % 2 ? 1 : -1) : Math.sign(dy)) * (oy / 2 + 0.5);
+          a.y -= d;
+          b.y += d;
+        } else {
+          const d = (dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx)) * (ox / 2 + 0.5);
+          a.x -= d;
+          b.x += d;
+        }
+        clamp(a);
+        clamp(b);
+      }
+    }
+    if (!moved) break;
+  }
+  return items;
+}
+
+function Counter({ p, side, m, at, size, showSeason, compact, sp }: { p: LineupPlayer; side: Side; m: MatchDetail; at: Placed; size: number; showSeason: boolean; compact: boolean; sp?: SquadPlayer }) {
   const lineup = m.lineups[side];
   const kit = kitOf(m, side);
-  const pos = spot(p, side, vertical);
   const sentOff = !!p.marks.red;
   const rating = showSeason ? p.seasonRating ?? sp?.rating : p.rating;
   const probable = lineup.status === "probable";
-  const line = showSeason || m.state === "pre" ? seasonLine(sp) : undefined;
-  const oop = m.shape?.[side]?.outOfPosition.find((o) => o.playerId === p.id);
+  const { oop, line, subOut } = underLine(p, side, m, showSeason, compact, sp);
   return (
     <button
       onClick={() => go(playerHash(m.league, m.id, p.id, p.fmId))}
-      className={`group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center focus-visible:outline-none ${sentOff ? "opacity-50" : ""}`}
-      style={{ left: `${pos.left}%`, top: `${pos.top}%`, width: size * 1.9 }}
+      className={`group absolute flex -translate-x-1/2 flex-col items-center focus-visible:outline-none ${sentOff ? "opacity-50" : ""}`}
+      style={{ left: at.x, top: at.y - at.h / 2 + BADGE_TOP, width: at.w }}
       data-tip={playerTip(p, lineup, m, sp)}
       data-tip-title={`${p.jersey ? `#${p.jersey} ` : ""}${p.name}`}
     >
-      <span className="relative transition-transform group-hover:scale-110 group-focus-visible:scale-110">
+      <span className="relative flex transition-transform group-hover:scale-110 group-focus-visible:scale-110">
         <PlayerDisc p={p} kit={kit} size={size} probable={probable} />
         {rating != null && (
-          <span className="absolute -right-2.5 -top-1 rounded px-[3px] font-ui text-[10.5px] font-bold leading-[15px] text-[#0d1216] tnum shadow" style={{ background: ratingColor(rating), opacity: showSeason ? 0.9 : 1 }}>
+          <span className="absolute -right-2.5 -top-1 rounded px-[3px] font-ui text-[12.5px] font-bold leading-[17px] text-[#0d1216] tnum shadow" style={{ background: ratingColor(rating), opacity: showSeason ? 0.9 : 1 }}>
             {rating.toFixed(1)}
           </span>
         )}
@@ -164,21 +241,21 @@ function Counter({ p, side, m, vertical, size, showSeason, sp }: { p: LineupPlay
           </span>
         )}
         {p.marks.assists.length > 0 && (
-          <span className="absolute -right-3 top-1/2 rounded-full bg-chalk px-1 font-ui text-[9px] font-bold leading-[13px] text-night">A{p.marks.assists.length > 1 ? p.marks.assists.length : ""}</span>
+          <span className="absolute -right-3 top-1/2 rounded-full bg-chalk px-1 font-ui text-[11px] font-bold leading-[15px] text-night">A{p.marks.assists.length > 1 ? p.marks.assists.length : ""}</span>
         )}
-        {p.potm && <span className="absolute -left-2.5 top-1/3 text-[12px] text-yellow drop-shadow" aria-label="Player of the match">★</span>}
+        {p.potm && <span className="absolute -left-2.5 top-1/3 text-[14.5px] text-yellow drop-shadow" aria-label="Player of the match">★</span>}
       </span>
-      <span className="mt-0.5 max-w-full truncate rounded px-1 font-ui text-[11.5px] font-semibold leading-tight text-chalk [text-shadow:0_1px_2px_rgba(0,0,0,.95)] group-hover:bg-black/40">
+      <span className="mt-0.5 max-w-full truncate rounded px-1 font-ui text-[14px] font-semibold leading-tight text-chalk [text-shadow:0_1px_2px_rgba(0,0,0,.95)] group-hover:bg-black/40">
         {lastName(p.short)}
       </span>
       {oop ? (
-        <span className="font-ui text-[10px] font-semibold leading-tight text-yellow [text-shadow:0_1px_2px_rgba(0,0,0,.9)]" data-tip={oop.kind === "flank" ? `Usually plays on the other flank (${oop.natural.join(", ")})` : `Out of position: usually ${oop.natural.join(", ")}`}>
+        <span className="font-ui text-[12px] font-semibold leading-tight text-yellow [text-shadow:0_1px_2px_rgba(0,0,0,.9)]" data-tip={oop.kind === "flank" ? `Usually plays on the other flank (${oop.natural.join(", ")})` : `Out of position: usually ${oop.natural.join(", ")}`}>
           at {oop.slot}
         </span>
-      ) : p.marks.subOut ? (
-        <span className="font-ui text-[10px] leading-tight text-red [text-shadow:0_1px_2px_rgba(0,0,0,.9)]">▼ {p.marks.subOut}</span>
+      ) : subOut ? (
+        <span className="font-ui text-[12px] leading-tight text-red [text-shadow:0_1px_2px_rgba(0,0,0,.9)]">▼ {subOut}</span>
       ) : line ? (
-        <span className="font-ui text-[10px] leading-tight text-chalk/75 tnum [text-shadow:0_1px_2px_rgba(0,0,0,.9)]">{line}</span>
+        <span className="font-ui text-[12px] leading-tight text-chalk/75 tnum [text-shadow:0_1px_2px_rgba(0,0,0,.9)]">{line}</span>
       ) : null}
       {probable && p.confidence != null && (
         <span className="mt-0.5 h-[3px] w-7 overflow-hidden rounded-full bg-black/40" {...tip("confidence")}>
@@ -195,23 +272,21 @@ function Dugout({ m, side, squad, showSeason, horizontal }: { m: MatchDetail; si
   const l = m.lineups[side];
   const kit = kitOf(m, side);
   const bench = [...l.bench].sort((a, b) => Number(!!b.marks.subIn) - Number(!!a.marks.subIn) || (b.seasonRating ?? 0) - (a.seasonRating ?? 0));
-  const textScale = useTunerScale("dugout", "text");
-  const discScale = useTunerScale("dugout", "display");
-  const ROWH = Math.round(34 * Math.max(1, textScale, discScale));
+  const ROWH = 41;
   // Vertical dugout: as many rows as fit. Horizontal strip: chips wrap into at most two rows.
-  const perRow = horizontal ? Math.max(1, Math.floor((w + 6) / 138)) : 1;
+  const perRow = horizontal ? Math.max(1, Math.floor((w + 6) / 160)) : 1;
   const fit = horizontal ? perRow * 2 : Math.max(0, Math.floor((h - 4) / ROWH));
   const shown = fit < bench.length ? bench.slice(0, Math.max(0, fit - 1)) : bench;
   const rest = bench.slice(shown.length);
   const title = l.status === "official" ? "Bench" : l.status === "probable" ? "Next in line" : "";
   if (!bench.length) return <div />;
   return (
-    <div data-fs="dugout" className={`flex min-h-0 flex-col ${horizontal ? "" : "h-full"}`}>
-      <div className={`mb-1 flex items-center gap-1.5 font-ui text-[11px] font-semibold text-mute ${side === "away" && !horizontal ? "flex-row-reverse" : ""}`}>
+    <div className={`flex min-h-0 flex-col ${horizontal ? "" : "h-full"}`}>
+      <div className={`mb-1 flex items-center gap-1.5 font-ui text-[13.5px] font-semibold text-mute ${side === "away" && !horizontal ? "flex-row-reverse" : ""}`}>
         <span className="size-2 rounded-full" style={{ background: `#${kit.color}`, boxShadow: "0 0 0 1px rgba(255,255,255,.35)" }} />
         {title}
       </div>
-      <div ref={ref} className={horizontal ? "grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-1.5" : "min-h-0 flex-1 overflow-hidden"}>
+      <div ref={ref} className={horizontal ? "grid grid-cols-[repeat(auto-fill,minmax(154px,1fr))] gap-1.5" : "min-h-0 flex-1 overflow-hidden"}>
         {shown.map((p) => {
           const sp = squad[side].get(p.id);
           const played = !!p.marks.subIn;
@@ -226,10 +301,10 @@ function Dugout({ m, side, squad, showSeason, horizontal }: { m: MatchDetail; si
               data-tip={playerTip(p, l, m, sp)}
               data-tip-title={`${p.jersey ? `#${p.jersey} ` : ""}${p.name}`}
             >
-              <PlayerDisc p={p} kit={kit} size={Math.round(26 * discScale)} />
+              <PlayerDisc p={p} kit={kit} size={31} />
               <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate font-ui text-[12px] font-semibold">{lastName(p.short)}</span>
-                <span className="block truncate font-ui text-[10.5px] text-mute tnum">
+                <span className="block truncate font-ui text-[14.5px] font-semibold">{lastName(p.short)}</span>
+                <span className="block truncate font-ui text-[12.5px] text-mute tnum">
                   {played ? <span className="text-win">▲ {p.marks.subIn}{p.replaces ? ` for ${lastName([...l.starters].find((s) => s.id === p.replaces)?.short ?? "")}` : ""}</span> : seasonLine(sp) ?? sp?.position ?? p.role}
                   {p.marks.goals.length > 0 && " ⚽"}
                   {p.marks.yellow && <CardIcon red={!!p.marks.red} className="ml-1 !h-[9px] !w-[6px] align-[-1px]" />}
@@ -240,7 +315,7 @@ function Dugout({ m, side, squad, showSeason, horizontal }: { m: MatchDetail; si
           );
         })}
         {rest.length > 0 && (
-          <div className={`font-ui text-[11px] text-mute ${side === "away" && !horizontal ? "text-right" : ""}`} data-tip={rest.map((r) => r.name).join("\n")} style={{ height: horizontal ? 30 : ROWH, lineHeight: `${horizontal ? 30 : ROWH}px` }}>
+          <div className={`font-ui text-[13.5px] text-mute ${side === "away" && !horizontal ? "text-right" : ""}`} data-tip={rest.map((r) => r.name).join("\n")} style={{ height: horizontal ? 30 : ROWH, lineHeight: `${horizontal ? 30 : ROWH}px` }}>
             +{rest.length} more
           </div>
         )}
@@ -250,7 +325,7 @@ function Dugout({ m, side, squad, showSeason, horizontal }: { m: MatchDetail; si
 }
 
 function RatingChip({ value }: { value: number }) {
-  return <span className="rounded px-[3px] font-ui text-[10px] font-bold leading-[14px] text-[#0d1216] tnum" style={{ background: ratingColor(value) }}>{value.toFixed(1)}</span>;
+  return <span className="rounded px-[3px] font-ui text-[12px] font-bold leading-[16px] text-[#0d1216] tnum" style={{ background: ratingColor(value) }}>{value.toFixed(1)}</span>;
 }
 
 function ShotDot({ s, m, vertical }: { s: Shot; m: MatchDetail; vertical: boolean }) {
@@ -280,47 +355,51 @@ function ShotDot({ s, m, vertical }: { s: Shot; m: MatchDetail; vertical: boolea
 
 export type PitchMode = "lineups" | "shots" | "bench";
 
-export function Pitch({ m, mode, showSeason, squad }: { m: MatchDetail; mode: PitchMode; showSeason: boolean; squad: SquadIndex }) {
+export function Pitch({ m, mode, showSeason, squad, dugouts = true }: { m: MatchDetail; mode: PitchMode; showSeason: boolean; squad: SquadIndex; dugouts?: boolean }) {
   const [ref, { w, h }] = useSize<HTMLDivElement>();
   const vertical = w > 0 && w / Math.max(h, 1) < 1.05;
-  const hasBench = m.lineups.home.bench.length + m.lineups.away.bench.length > 0;
+  const hasBench = dugouts && m.lineups.home.bench.length + m.lineups.away.bench.length > 0;
   // Dugouts sit beside the pitch when there's room (wide screens), otherwise in a strip underneath.
-  const dug = Math.round(Math.min(178, Math.max(138, w * 0.15)));
+  const dug = Math.round(Math.min(210, Math.max(160, w * 0.16)));
+  // The drawing may stretch ~10% off the real 105x68 so the players get the room that's there.
   const fitPitch = (bw: number, bh: number) => {
-    const ratio = vertical ? 68 / 105 : 105 / 68;
-    let pw = bw;
-    let ph = bw / ratio;
-    if (ph > bh) {
-      ph = bh;
-      pw = bh * ratio;
-    }
+    const [lo, hi] = vertical ? [68 / 105 / 1.1, (68 / 105) * 1.1] : [105 / 68 / 1.1, (105 / 68) * 1.1];
+    const ph = Math.min(bh, bw / lo);
+    const pw = Math.min(bw, ph * hi);
     return { pw, ph };
   };
   // Side dugouts show the whole bench; take them unless they'd shrink the pitch noticeably vs a strip underneath.
-  const STRIP = 92; // two rows of bench chips under the pitch
+  const STRIP = 104; // two rows of bench chips under the pitch
   const side = hasBench && !vertical && fitPitch(w - 2 * dug - 16, h).ph >= fitPitch(w, h - STRIP).ph * 0.86;
   const strip = hasBench && !side;
   const stripH = strip ? (vertical ? 0 : STRIP) : 0;
   const { pw, ph } = side ? fitPitch(w - 2 * dug - 16, h) : fitPitch(w, h - stripH - (strip && !vertical ? 6 : 0));
-  const discScale = useTunerScale("pitch", "display");
-  const size = Math.round(Math.max(26, Math.min(50, vertical ? Math.min(pw / 8.6, ph / 13.5) : Math.min(ph / 8.6, pw / 13))) * discScale);
+  // Faces as big as the pitch allows, but a back five plus names must still fit across it.
+  const across = vertical ? pw : ph;
+  const along = vertical ? ph : pw;
+  const compact = across / 5.3 - NAME_PX - LINE_PX - 14 < 34;
+  const size = Math.round(Math.max(28, Math.min(60, across / 7.1, along / 10.8, across / 5.3 - NAME_PX - (compact ? 0 : LINE_PX) - 14)));
   const hasXI = (s: Side) => m.lineups[s].starters.length >= 11 && m.lineups[s].starters.every((p) => p.x != null);
+  const xi = (["home", "away"] as Side[]).filter(hasXI);
+  const placed = useMemo(
+    () => (mode === "lineups" && pw > 0 ? placeCounters(m, xi, vertical, pw, ph, size, showSeason, compact, squad) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [m, xi.join(), vertical, pw, ph, size, showSeason, compact, squad, mode],
+  );
 
   const pitch = (
     <div className="turf relative shrink-0 overflow-hidden rounded-lg ring-1 ring-black/40" style={{ width: pw, height: ph, ["--stripe-dir" as string]: vertical ? "180deg" : "90deg" }}>
       <Markings vertical={vertical} />
-      {mode === "lineups" &&
-        (["home", "away"] as Side[]).map((s) =>
-          hasXI(s) ? (
-            m.lineups[s].starters.map((p) => <Counter key={`${s}${p.id}`} p={p} side={s} m={m} vertical={vertical} size={size} showSeason={showSeason} sp={squad[s].get(p.id)} />)
-          ) : (
-            <NoLineup key={s} side={s} vertical={vertical} />
-          ),
-        )}
+      {mode === "lineups" && (
+        <>
+          {placed.map((c) => <Counter key={c.key} p={c.p} side={c.side} m={m} at={c} size={size} showSeason={showSeason} compact={compact} sp={squad[c.side].get(c.p.id)} />)}
+          {(["home", "away"] as Side[]).filter((s) => !hasXI(s)).map((s) => <NoLineup key={s} side={s} vertical={vertical} />)}
+        </>
+      )}
       {mode === "shots" && (
         <>
           {m.shots.map((s, i) => <ShotDot key={i} s={s} m={m} vertical={vertical} />)}
-          {!m.shots.length && <div className="absolute inset-0 grid place-items-center font-ui text-sm text-chalk/70">No shots yet</div>}
+          {!m.shots.length && <div className="absolute inset-0 grid place-items-center font-ui text-[17px] text-chalk/70">No shots yet</div>}
         </>
       )}
     </div>
@@ -362,7 +441,7 @@ export function Pitch({ m, mode, showSeason, squad }: { m: MatchDetail; mode: Pi
 function NoLineup({ side, vertical }: { side: Side; vertical: boolean }) {
   const pos = !vertical ? { left: side === "home" ? "25%" : "75%", top: "50%" } : { left: "50%", top: side === "home" ? "75%" : "25%" };
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2 rounded-lg bg-black/35 px-3 py-2 text-center font-ui text-xs text-chalk/80" style={pos}>
+    <div className="absolute -translate-x-1/2 -translate-y-1/2 rounded-lg bg-black/35 px-3 py-2 text-center font-ui text-[14.5px] text-chalk/80" style={pos}>
       Lineup not known yet
     </div>
   );

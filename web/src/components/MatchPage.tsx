@@ -43,7 +43,9 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
   const activeTab: CenterTab = tab ?? (m.state === "pre" ? "preview" : "story");
   const tabs = centerTabs(m);
   const layout = w >= 1500 ? "wide" : w >= 1000 ? "medium" : "narrow";
-  const shownPitchMode: PitchMode = pitchMode === "bench" && layout !== "narrow" ? "lineups" : pitchMode;
+  // Below ~1200px the dugouts would squeeze the pitch, so the benches get their own view instead.
+  const benchView = layout === "narrow" || w < 1200;
+  const shownPitchMode: PitchMode = pitchMode === "bench" && !benchView ? "lineups" : pitchMode;
   const numbersToggle =
     m.state !== "pre" ? (
       <Segmented size="sm" value={mode} onChange={setNumbers} options={[{ value: "match", label: "This match", title: "Ratings and numbers from this match" }, { value: "season", label: "Season", title: "Season averages and totals" }]} />
@@ -58,14 +60,14 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
 
   const center = (withTabs: boolean) => (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div data-fs="pitch" className="flex min-h-0 flex-[1.7_1_0] flex-col rounded-xl bg-stand p-2 ring-1 ring-rule">
-        <PitchBar m={m} mode={shownPitchMode} setMode={setPitchMode} benchTab={!withTabs} />
+      <div className="flex min-h-0 flex-[2.1_1_0] flex-col rounded-xl bg-stand p-2 ring-1 ring-rule">
+        <PitchBar m={m} mode={shownPitchMode} setMode={setPitchMode} benchTab={benchView} />
         <div className="min-h-0 flex-1 py-1.5">
-          <Pitch m={m} mode={shownPitchMode} showSeason={mode === "season"} squad={squad} />
+          <Pitch m={m} mode={shownPitchMode} showSeason={mode === "season"} squad={squad} dugouts={!benchView} />
         </div>
         {m.momentum.length > 0 && (
-          <div data-fs="pitchbar" className="shrink-0 px-1">
-            <div className="flex items-center justify-between font-ui text-[10.5px] text-faint">
+          <div className="shrink-0 px-1">
+            <div className="flex items-center justify-between font-ui text-[12.5px] text-faint">
               <Term k={m.momentumSource === "fotmob" ? "momentum" : "momentumEstimate"}>Momentum</Term>
               {m.xg && <span {...tip("xg")} className="tnum">xG {m.xg.home.toFixed(2)} – {m.xg.away.toFixed(2)}</span>}
             </div>
@@ -74,7 +76,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
         )}
       </div>
       {withTabs && (
-        <div data-fs="tabs" className="flex min-h-0 flex-[1_1_0] flex-col rounded-xl bg-stand ring-1 ring-rule @container">
+        <div className="flex min-h-0 flex-[1_1_0] flex-col rounded-xl bg-stand ring-1 ring-rule @container">
           <div className="flex shrink-0 items-center gap-2 border-b border-rule px-2 py-1.5">
             <Segmented size="sm" value={activeTab} onChange={setTab} options={tabs} />
           </div>
@@ -90,14 +92,14 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
     <div className="flex h-dvh flex-col overflow-hidden">
       <Header m={m} updatedAt={q.dataUpdatedAt} toggle={layout !== "narrow" ? numbersToggle : null} />
       {layout === "wide" && (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(340px,1fr)_minmax(640px,1.8fr)_minmax(340px,1fr)] grid-rows-[minmax(0,1fr)] gap-2 p-2">
+        <main className="grid min-h-0 flex-1 grid-cols-[minmax(340px,0.75fr)_minmax(720px,2.5fr)_minmax(340px,0.75fr)] grid-rows-[minmax(0,1fr)] gap-2 p-2">
           {panel("home")}
           {center(true)}
           {panel("away")}
         </main>
       )}
       {layout === "medium" && (
-        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-2 p-2">
+        <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.85fr)_minmax(300px,1fr)] grid-rows-[minmax(0,1fr)] gap-2 p-2">
           {center(true)}
           <div className="flex min-h-0 flex-col gap-2">
             <Segmented
@@ -112,7 +114,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
       )}
       {layout === "narrow" && (
         <>
-          <nav data-fs="tabs" className="scroll-thin flex shrink-0 items-center gap-2 overflow-x-auto px-2 py-1.5">
+          <nav className="scroll-thin flex shrink-0 items-center gap-2 overflow-x-auto px-2 py-1.5">
             <Segmented
               size="sm"
               value={narrowTab}
@@ -129,7 +131,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
             {narrowTab === "pitch" && center(false)}
             {(narrowTab === "home" || narrowTab === "away") && panel(narrowTab)}
             {tabs.some((t) => t.value === narrowTab) && (
-              <div data-fs="tabs" className="scroll-thin h-full overflow-auto rounded-xl bg-stand p-3 ring-1 ring-rule @container">
+              <div className="scroll-thin h-full overflow-auto rounded-xl bg-stand p-3 ring-1 ring-rule @container">
                 <TabBody tab={narrowTab as CenterTab} m={m} teams={teams} />
               </div>
             )}
@@ -153,7 +155,7 @@ function PitchBar({ m, mode, setMode, benchTab }: { m: MatchDetail; mode: PitchM
         <span className="text-mute">Lineup unknown</span>
       );
     return (
-      <div className={`flex min-w-0 items-center gap-2 font-ui text-[12.5px] ${s === "away" ? "flex-row-reverse text-right" : ""}`}>
+      <div className={`flex min-w-0 items-center gap-2 font-ui text-[15px] ${s === "away" ? "flex-row-reverse text-right" : ""}`}>
         <span className="size-2.5 shrink-0 rounded-full" style={{ background: `#${l.kit?.color ?? m[s].color}`, boxShadow: "0 0 0 1px rgba(255,255,255,.35)" }} />
         <FormationButton m={m} side={s} />
         <span className="hidden truncate text-mute @2xl:inline">{l.coach?.name}</span>
@@ -162,7 +164,7 @@ function PitchBar({ m, mode, setMode, benchTab }: { m: MatchDetail; mode: PitchM
     );
   };
   return (
-    <div data-fs="pitchbar" className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-1 @container">
+    <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-1 @container">
       {side("home")}
       <Segmented
         size="sm"
@@ -197,7 +199,7 @@ function Header({ m, updatedAt, toggle }: { m: MatchDetail; updatedAt: number; t
   }, []);
   return (
     <header
-      data-fs="header"
+     
       className="relative shrink-0 border-b border-rule @container"
       style={{ background: `linear-gradient(100deg, ${tint(m.home.color)}66 0%, #151c23 30%, #151c23 70%, ${tint(m.away.color)}66 100%)` }}
     >
@@ -233,13 +235,13 @@ function HeaderTeam({ m, side }: { m: MatchDetail; side: Side }) {
       <Crest src={t.logo} className="size-7 drop-shadow @lg:size-9 @2xl:size-11" />
       <div className="min-w-0 leading-none">
         <div className={`flex items-baseline gap-2 ${right ? "flex-row-reverse" : ""}`}>
-          <span className="font-display text-2xl font-extrabold tracking-tight @2xl:text-[30px]">
+          <span className="font-display text-2xl font-extrabold tracking-tight @2xl:text-[33px]">
             <span className="@2xl:hidden">{t.abbr}</span>
             <span className="hidden @2xl:inline">{t.short}</span>
           </span>
           {t.rank && <span className="shrink-0 font-ui text-xs text-chalk/60 tnum" data-tip="League position">{ordinal(t.rank)}</span>}
         </div>
-        <div className="mt-1 truncate font-ui text-[11.5px] text-chalk/70" data-tip-overflow data-tip={goals.map((g) => `${g.player} ${g.minute}`).join(", ")}>
+        <div className="mt-1 truncate font-ui text-[12.5px] text-chalk/70" data-tip-overflow data-tip={goals.map((g) => `${g.player} ${g.minute}`).join(", ")}>
           {goals.length || reds.length ? (
             <>
               {goals.map((g, i) => (
@@ -268,14 +270,14 @@ function Scoreboard({ m, updatedAt }: { m: MatchDetail; updatedAt: number }) {
   if (m.state === "pre") {
     return (
       <div className="text-center leading-none">
-        <div className="font-display text-[34px] font-extrabold tnum">{kickoff(m.date)}</div>
+        <div className="font-display text-[37.5px] font-extrabold tnum">{kickoff(m.date)}</div>
         <div className="mt-0.5 font-ui text-xs text-chalk/70">{countdown(m.date)}</div>
       </div>
     );
   }
   return (
     <div className="text-center leading-none">
-      <div className="flex items-center justify-center gap-1 font-display text-[40px] font-black tnum">
+      <div className="flex items-center justify-center gap-1 font-display text-[44px] font-black tnum">
         <span style={{ ["--team" as string]: hc }}>
           <Flash value={m.home.score} scope={m.id} lift className={`px-1 ${m.state === "post" && !m.home.winner && m.away.winner ? "opacity-60" : ""}`} />
         </span>
@@ -318,7 +320,7 @@ function UpdatedAgo({ at }: { at: number }) {
   }, []);
   const s = Math.max(0, Math.round((now - at) / 1000));
   return (
-    <div className="mt-0.5 font-ui text-[10px] text-chalk/45 tnum" data-tip="Live data refreshes about every 15 seconds. Changed numbers glow briefly.">
+    <div className="mt-0.5 font-ui text-[11px] text-chalk/45 tnum" data-tip="Live data refreshes about every 15 seconds. Changed numbers glow briefly.">
       updated {s < 10 ? "just now" : s < 60 ? `${Math.floor(s / 5) * 5}s ago` : `${Math.floor(s / 60)} min ago`}
     </div>
   );

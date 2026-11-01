@@ -16,7 +16,7 @@ export function ClubPanel({ m, side, team, mode }: { m: MatchDetail; side: Side;
   const ref = m[side];
   const color = accent(ref.color, ref.altColor);
   return (
-    <section data-fs="panel" className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl bg-stand ring-1 ring-rule @container" style={{ ["--team" as string]: color }}>
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl bg-stand ring-1 ring-rule @container" style={{ ["--team" as string]: color }}>
       <ClubHeader m={m} side={side} team={team} onClub={() => setClubOpen(true)} />
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-3 pb-3 pt-2.5">
         <div className="grid shrink-0 gap-2.5 @lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
@@ -30,7 +30,7 @@ export function ClubPanel({ m, side, team, mode }: { m: MatchDetail; side: Side;
           {team && <Results team={team} />}
           {team && team.fixtures.length > 1 && <Upcoming team={team} m={m} />}
         </FitStack>
-        <button onClick={() => setSquadOpen(true)} disabled={!team} className="shrink-0 rounded-lg py-1.5 font-ui text-[13px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
+        <button onClick={() => setSquadOpen(true)} disabled={!team} className="shrink-0 rounded-lg py-1.5 font-ui text-[14.5px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
           Full squad{team ? ` · ${team.squad.length} players` : ""}
         </button>
       </div>
@@ -53,10 +53,10 @@ function ClubHeader({ m, side, team, onClub }: { m: MatchDetail; side: Side; tea
         <Crest src={ref.logo} className="size-11 drop-shadow" />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <h2 className="truncate font-display text-[26px] font-extrabold leading-none tracking-tight">{ref.name}</h2>
+            <h2 className="truncate font-display text-[28.5px] font-extrabold leading-none tracking-tight">{ref.name}</h2>
             <span className="font-ui text-xs text-mute">{side === "home" ? "Home" : "Away"}</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-ui text-[13px] text-chalk/80">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-ui text-[14.5px] text-chalk/80">
             {st ? (
               <span className="tnum" data-tip={`${st.w} wins, ${st.d} draws, ${st.l} losses · goals ${st.gf}-${st.ga}${st.zone ? `\nZone: ${st.zone.label}` : ""}`}>
                 <b className="font-semibold text-chalk">{ordinal(st.rank)}</b>{team!.league !== m.league && <span className="text-mute"> in {team!.leagueName}</span>} · {st.pts} pts · {st.w}-{st.d}-{st.l}
@@ -73,7 +73,7 @@ function ClubHeader({ m, side, team, onClub }: { m: MatchDetail; side: Side; tea
             )}
           </div>
         </div>
-        <button onClick={onClub} disabled={!team} className="shrink-0 rounded-lg px-2.5 py-1 font-ui text-[13px] font-semibold text-chalk/90 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
+        <button onClick={onClub} disabled={!team} className="shrink-0 rounded-lg px-2.5 py-1 font-ui text-[14.5px] font-semibold text-chalk/90 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
           Club
         </button>
       </div>
@@ -92,7 +92,7 @@ function CoachCard({ m, side, team, onOpen }: { m: MatchDetail; side: Side; team
     <button onClick={onOpen} disabled={!c} className="flex min-w-0 items-center gap-2.5 rounded-lg bg-terrace/60 p-2 text-left ring-1 ring-transparent transition-colors hover:ring-rule disabled:cursor-default">
       <Photo src={c?.photo ?? fallback?.photo} name={name} className="size-11" ring="var(--team)" />
       <div className="min-w-0 flex-1 leading-tight">
-        <div className="truncate font-ui text-[15px] font-bold">{name}</div>
+        <div className="truncate font-ui text-[16.5px] font-bold">{name}</div>
         <div className="truncate font-ui text-xs text-mute">
           {[c?.nationality ?? fallback?.country, (c?.age ?? fallback?.age) ? `${c?.age ?? fallback?.age}` : undefined].filter(Boolean).join(", ")}
           {t && <> · <span {...tip("tenure")}>since {t.since}</span></>}
@@ -107,7 +107,7 @@ function CoachCard({ m, side, team, onOpen }: { m: MatchDetail; side: Side; team
                 · {r.ppg.toFixed(2)} ppg
               </span>
             )}
-            {(m.shape?.[side]?.usual ?? c?.formation) && <span className="ml-auto rounded bg-night/60 px-1 text-[11px] text-chalk/80" data-tip="Most used shape in recent matches">{m.shape?.[side]?.usual ?? c?.formation}</span>}
+            {(m.shape?.[side]?.usual ?? c?.formation) && <span className="ml-auto rounded bg-night/60 px-1 text-[12px] text-chalk/80" data-tip="Most used shape in recent matches">{m.shape?.[side]?.usual ?? c?.formation}</span>}
           </div>
         )}
       </div>
@@ -151,7 +151,7 @@ function Profile({ team }: { team: TeamDetail }) {
     <div className="grid shrink-0 grid-cols-4 gap-x-2 gap-y-1.5 @lg:grid-cols-8">
       {items.map((p) => (
         <div key={p.key} className="min-w-0 rounded-md bg-night/40 px-1.5 py-1" {...(tipKey[p.key] ? tip(tipKey[p.key], `League season so far. Rank ${p.rank ?? "–"} of ${team.leagueSize ?? 20}.`) : { "data-tip": `${p.label}, league season so far. Rank ${p.rank ?? "–"} of ${team.leagueSize ?? 20}.` })}>
-          <div className="truncate font-ui text-[10.5px] text-mute">{SHORT[p.key] ?? p.label}</div>
+          <div className="truncate font-ui text-[11.5px] text-mute">{SHORT[p.key] ?? p.label}</div>
           <div className="flex items-baseline justify-between gap-1">
             <span className="font-display text-lg font-bold leading-none tnum">{p.display}</span>
             <RankNote rank={p.rank} of={team.leagueSize ?? 20} />
@@ -268,15 +268,15 @@ function Leaders({ m, side, team }: { m: MatchDetail; side: Side; team: TeamDeta
   const lp = (id: string) => [...m.lineups[side].starters, ...m.lineups[side].bench].find((x) => x.id === id);
   return (
     <section>
-      <div className="mb-1.5 font-ui text-[12px] font-semibold text-mute">This season · {team.leagueName}</div>
+      <div className="mb-1.5 font-ui text-[13px] font-semibold text-mute">This season · {team.leagueName}</div>
       <div className="grid grid-cols-2 gap-2">
         {cards.map((c) => (
           <button key={c.label} onClick={() => go(playerHash(m.league, m.id, c.p!.id, lp(c.p!.id)?.fmId))} className="flex min-w-0 items-center gap-2.5 rounded-lg bg-terrace/50 p-2 text-left hover:bg-terrace" {...(c.label === "Best rated" ? tip("seasonRating") : c.label === "Most valuable" ? tip("marketValue") : {})}>
             <Photo src={c.p!.photo} name={c.p!.name} className="size-11" ring="var(--team)" />
             <div className="min-w-0 leading-tight">
-              <div className="font-ui text-[11px] text-mute">{c.label}</div>
-              <div className="truncate font-ui text-[13.5px] font-bold">{c.p!.short}</div>
-              <div className="font-display text-xl font-extrabold leading-none tnum">{c.v(c.p!)} <span className="font-ui text-[11px] font-normal text-mute">{c.unit}</span></div>
+              <div className="font-ui text-[12px] text-mute">{c.label}</div>
+              <div className="truncate font-ui text-[15px] font-bold">{c.p!.short}</div>
+              <div className="font-display text-xl font-extrabold leading-none tnum">{c.v(c.p!)} <span className="font-ui text-[12px] font-normal text-mute">{c.unit}</span></div>
             </div>
           </button>
         ))}
@@ -296,7 +296,7 @@ function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDet
   const sorted = [...items].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   return (
     <section>
-      <div className="mb-1.5 flex justify-between font-ui text-[12px] font-semibold text-mute">
+      <div className="mb-1.5 flex justify-between font-ui text-[13px] font-semibold text-mute">
         <span>Missing</span>
         {items.length > 0 && <span className="font-normal">{items.length}</span>}
       </div>
@@ -307,23 +307,23 @@ function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDet
               <button onClick={() => (u.id || u.fm) && go(playerHash(m.league, m.id, u.id ?? `fm${u.fm}`, u.fm))} className="flex w-full items-center gap-2.5 rounded-md px-1 py-0.5 text-left hover:bg-terrace/70">
                 <Photo src={u.photo} name={u.name} className="size-8" />
                 <span className="min-w-0 flex-1 leading-tight">
-                  <span className="block truncate font-ui text-[13px] font-semibold">{u.name}</span>
-                  <span className="block truncate font-ui text-[11px] text-mute">{[u.pos, u.reason, u.returns && `back: ${u.returns}`].filter(Boolean).join(" · ")}</span>
+                  <span className="block truncate font-ui text-[14.5px] font-semibold">{u.name}</span>
+                  <span className="block truncate font-ui text-[12px] text-mute">{[u.pos, u.reason, u.returns && `back: ${u.returns}`].filter(Boolean).join(" · ")}</span>
                 </span>
-                <span className={`shrink-0 rounded px-1.5 font-ui text-[10.5px] font-semibold leading-[16px] ${u.status === "doubt" ? "bg-yellow/15 text-yellow" : "bg-red/15 text-red"}`}>
+                <span className={`shrink-0 rounded px-1.5 font-ui text-[11.5px] font-semibold leading-[16px] ${u.status === "doubt" ? "bg-yellow/15 text-yellow" : "bg-red/15 text-red"}`}>
                   {u.status === "suspended" ? "Suspended" : u.status === "doubt" ? "Doubtful" : "Out"}
                 </span>
               </button>
             </li>
           ))}
           {sorted.length > MAX_MISSING && (
-            <li className="px-1 font-ui text-[12px] text-mute" data-tip={sorted.slice(MAX_MISSING).map((u) => `${u.name}${u.returns ? ` (back: ${u.returns})` : ""}`).join("\n")}>
+            <li className="px-1 font-ui text-[13px] text-mute" data-tip={sorted.slice(MAX_MISSING).map((u) => `${u.name}${u.returns ? ` (back: ${u.returns})` : ""}`).join("\n")}>
               +{sorted.length - MAX_MISSING} more
             </li>
           )}
         </ul>
       ) : (
-        <p className="font-ui text-[13px] text-chalk/70">No injuries or suspensions reported.</p>
+        <p className="font-ui text-[14.5px] text-chalk/70">No injuries or suspensions reported.</p>
       )}
     </section>
   );
@@ -331,7 +331,7 @@ function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDet
 
 function FixtureLine({ r, upcoming }: { r: FixtureRow; upcoming?: boolean }) {
   return (
-    <li className="grid grid-cols-[46px_44px_minmax(0,1fr)_auto] items-center gap-2 font-ui text-[12.5px]">
+    <li className="grid grid-cols-[46px_44px_minmax(0,1fr)_auto] items-center gap-2 font-ui text-[14px]">
       <span className="text-mute tnum">{shortDate(r.date)}</span>
       <span className="truncate text-faint">{r.comp}</span>
       <span className="flex min-w-0 items-center gap-1.5">
@@ -347,7 +347,7 @@ function FixtureLine({ r, upcoming }: { r: FixtureRow; upcoming?: boolean }) {
 function Results({ team }: { team: TeamDetail }) {
   return (
     <section>
-      <div className="mb-1 font-ui text-[12px] font-semibold text-mute">Recent results</div>
+      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">Recent results</div>
       <ul className="space-y-1">{team.results.slice(0, 5).map((r) => <FixtureLine key={r.id} r={r} />)}</ul>
     </section>
   );
@@ -358,7 +358,7 @@ function Upcoming({ team, m }: { team: TeamDetail; m: MatchDetail }) {
   if (!next.length) return null;
   return (
     <section>
-      <div className="mb-1 font-ui text-[12px] font-semibold text-mute">After this</div>
+      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">After this</div>
       <ul className="space-y-1">{next.map((r) => <FixtureLine key={r.id} r={r} upcoming />)}</ul>
     </section>
   );
@@ -370,7 +370,7 @@ const COLS = "grid grid-cols-[22px_36px_minmax(0,1fr)_34px_30px_30px] @sm:grid-c
 function SquadHeader({ mode, m }: { mode: NumbersMode; m: MatchDetail }) {
   const live = mode === "match" && m.state !== "pre";
   return (
-    <div className={`${COLS} shrink-0 pb-0.5 font-ui text-[10.5px] text-faint`}>
+    <div className={`${COLS} shrink-0 pb-0.5 font-ui text-[11.5px] text-faint`}>
       <span />
       <span />
       <span />
@@ -428,26 +428,26 @@ function PlayerRow({ r, m, side, kit, mode }: { r: Extract<Row, { kind: "player"
       ].filter(Boolean).join("\n")}
       data-tip-title={name}
     >
-      <Kit color={kit.color} alt={kit.alt} number={jersey} size={20} className="!text-[10px]" />
+      <Kit color={kit.color} alt={kit.alt} number={jersey} size={20} className="!text-[11px]" />
       <Photo src={photo} name={name} className="size-9" />
       <span className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate font-ui text-[13px] font-semibold leading-none">{name}</span>
-        {marks?.goals.map((g) => <span key={g} className="shrink-0 text-[10px]" data-tip={`Goal ${g}`}>⚽</span>)}
+        <span className="truncate font-ui text-[14.5px] font-semibold leading-none">{name}</span>
+        {marks?.goals.map((g) => <span key={g} className="shrink-0 text-[11px]" data-tip={`Goal ${g}`}>⚽</span>)}
         {marks?.yellow && !marks.red && <CardIcon className="shrink-0" />}
         {marks?.red && <CardIcon red className="shrink-0" />}
-        {marks?.subIn && <span className="shrink-0 font-ui text-[10.5px] text-win tnum">▲{marks.subIn}</span>}
-        {marks?.subOut && <span className="shrink-0 font-ui text-[10.5px] text-red tnum">▼{marks.subOut}</span>}
-        {lp?.potm && <span className="shrink-0 text-[11px] text-yellow" {...tip("potm")}>★</span>}
+        {marks?.subIn && <span className="shrink-0 font-ui text-[11.5px] text-win tnum">▲{marks.subIn}</span>}
+        {marks?.subOut && <span className="shrink-0 font-ui text-[11.5px] text-red tnum">▼{marks.subOut}</span>}
+        {lp?.potm && <span className="shrink-0 text-[12px] text-yellow" {...tip("potm")}>★</span>}
         {injury && (
-          <span className={`shrink-0 rounded px-1 font-ui text-[10px] font-semibold leading-[14px] ${injury.status === "doubt" ? "bg-yellow/15 text-yellow" : "bg-red/15 text-red"}`}>
+          <span className={`shrink-0 rounded px-1 font-ui text-[11px] font-semibold leading-[14px] ${injury.status === "doubt" ? "bg-yellow/15 text-yellow" : "bg-red/15 text-red"}`}>
             {injury.status === "suspended" ? "Susp." : injury.status === "doubt" ? "Doubt" : "Out"}
           </span>
         )}
-        <span className="hidden truncate font-ui text-[11px] text-faint @md:inline">{posLabel}</span>
+        <span className="hidden truncate font-ui text-[12px] text-faint @md:inline">{posLabel}</span>
       </span>
       <span className="text-center">{rating ? <Rating value={rating} /> : null}</span>
       {cells.map((c, i) => (
-        <span key={i} className={`text-right font-ui text-[12.5px] tnum ${i >= 2 ? (i === 2 ? "hidden @sm:block" : i === 3 ? "hidden @md:block" : "hidden @lg:block") : ""} ${i < 2 && c ? "font-bold" : "text-chalk/75"}`}>
+        <span key={i} className={`text-right font-ui text-[14px] tnum ${i >= 2 ? (i === 2 ? "hidden @sm:block" : i === 3 ? "hidden @md:block" : "hidden @lg:block") : ""} ${i < 2 && c ? "font-bold" : "text-chalk/75"}`}>
           {c}
         </span>
       ))}

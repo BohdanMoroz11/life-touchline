@@ -22,7 +22,7 @@ export function PlayerModal({ id, fm, m, onClose }: { id: string; fm?: string; m
           <header className="relative shrink-0 overflow-hidden border-b border-rule p-5 pr-20">
             <div className="pointer-events-none absolute inset-0 opacity-25" style={{ background: side ? `linear-gradient(110deg, #${m[side].color} 0%, transparent 70%)` : undefined }} />
             {p.jersey && (
-              <span className="pointer-events-none absolute -bottom-6 right-6 select-none font-display text-[150px] font-black leading-none text-transparent opacity-40 [-webkit-text-stroke:2px_var(--team)]">{p.jersey}</span>
+              <span className="pointer-events-none absolute -bottom-6 right-6 select-none font-display text-[165px] font-black leading-none text-transparent opacity-40 [-webkit-text-stroke:2px_var(--team)]">{p.jersey}</span>
             )}
             <div className="relative flex items-center gap-4">
               <Photo src={p.photo ?? lp?.photo} name={p.name} className="size-24" ring="var(--team)" />
@@ -125,9 +125,9 @@ function Overview({ p, m, lpStats }: { p: PlayerDetail; m: MatchDetail; lpStats?
         <Label className="mb-1.5">By competition</Label>
         {p.season.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full font-ui text-[13px] tnum">
+            <table className="w-full font-ui text-[14.5px] tnum">
               <thead>
-                <tr className="text-[11px] text-faint">
+                <tr className="text-[12px] text-faint">
                   <th className="text-left font-normal">Competition</th>
                   {shown.map(([k, l, t]) => (
                     <th key={k} className="px-1.5 text-right font-normal" {...(t ? tip(t) : {})}>{l}</th>
@@ -157,7 +157,7 @@ function Overview({ p, m, lpStats }: { p: PlayerDetail; m: MatchDetail; lpStats?
           <Label className="mb-1.5" aside="percentile, same position">{p.traits.title}</Label>
           <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
             {p.traits.items.map((t) => (
-              <div key={t.label} className="grid grid-cols-[minmax(0,1fr)_120px_32px] items-center gap-2 font-ui text-[13px]">
+              <div key={t.label} className="grid grid-cols-[minmax(0,1fr)_120px_32px] items-center gap-2 font-ui text-[14.5px]">
                 <span className="truncate text-chalk/85">{t.label}</span>
                 <div className="h-1.5 overflow-hidden rounded-full bg-terrace">
                   <div className="h-full rounded-full" style={{ width: `${Math.max(3, t.value * 100)}%`, background: t.value >= 0.8 ? "var(--color-good)" : t.value <= 0.2 ? "var(--color-bad)" : "var(--team)" }} />
@@ -200,9 +200,9 @@ function Overview({ p, m, lpStats }: { p: PlayerDetail; m: MatchDetail; lpStats?
 function Matches({ p }: { p: PlayerDetail }) {
   if (!p.recent.length) return <p className="font-ui text-sm text-mute">No recent matches available.</p>;
   return (
-    <table className="w-full font-ui text-[13px] tnum">
+    <table className="w-full font-ui text-[14.5px] tnum">
       <thead>
-        <tr className="text-[11px] text-faint">
+        <tr className="text-[12px] text-faint">
           <th className="text-left font-normal">Date</th>
           <th className="text-left font-normal">Comp</th>
           <th className="text-left font-normal">Opponent</th>
@@ -245,7 +245,7 @@ function Career({ p }: { p: PlayerDetail }) {
           <span className={`absolute -left-[21px] top-1.5 size-2.5 rounded-full ${i === 0 ? "bg-[var(--team)]" : "bg-rule"}`} />
           <div className="min-w-0">
             <span className="font-semibold">{c.club}</span>
-            {c.loan && <span className="ml-1.5 rounded bg-terrace px-1 text-[10px] text-mute">loan</span>}
+            {c.loan && <span className="ml-1.5 rounded bg-terrace px-1 text-[11px] text-mute">loan</span>}
             <span className="ml-2 text-xs text-mute tnum">{yr(c.from) ?? "?"}–{c.to ? yr(c.to) : "now"}</span>
           </div>
           <span className="text-xs text-chalk/80 tnum">

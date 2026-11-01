@@ -17,7 +17,7 @@ export function CoachModal({ team, shape, onClose }: { team: TeamDetail; shape?:
             {c.style && (
               <section>
                 <Label className="mb-1.5">How he sets up</Label>
-                <p className="text-[15px] leading-relaxed text-chalk/90">{c.style}</p>
+                <p className="text-[16.5px] leading-relaxed text-chalk/90">{c.style}</p>
                 {c.knownFor && <p className="mt-2 text-sm leading-relaxed text-mute">{c.knownFor}</p>}
                 {shape?.coach?.in_possession && <p className="mt-2 text-sm leading-relaxed"><span className="text-good">With the ball:</span> <span className="text-chalk/85">{shape.coach.in_possession}</span></p>}
                 {shape?.coach?.out_of_possession && <p className="mt-1 text-sm leading-relaxed"><span className="text-bad">Without it:</span> <span className="text-chalk/85">{shape.coach.out_of_possession}</span></p>}
@@ -76,7 +76,7 @@ export function CoachHero({ c, team, compact }: { c: Coach; team: TeamDetail; co
           ].map(([l, v, cls]) => (
             <div key={l as string} {...(l === "PPG" ? tip("ppg") : {})}>
               <div className={`font-display text-3xl font-extrabold leading-none tnum ${cls}`}>{v ?? "–"}</div>
-              <div className="text-[11px] text-mute">{l}</div>
+              <div className="text-[12px] text-mute">{l}</div>
             </div>
           ))}
         </div>

@@ -59,8 +59,11 @@ Direction: **"tactics board under floodlights"**. Graphite night base (`night`, 
 
 - **The match page never scrolls** (owner's #1 rule). Detail goes into tabs, popovers and modals; tab bodies may scroll internally.
 - Football convention: **home on the left** (and at the bottom of a vertical pitch).
-- Layouts by window width (`useWidth`): ≥1500 wide = home | centre | away; ≥1000 medium = centre | club panel with home/away switch; narrow = tab bar (Pitch, Home, Away, centre tabs) with a vertical pitch.
+- Layouts by window width (`useWidth`): ≥1500 wide = home | centre | away (side columns kept lean, 340px min, so the centre gets the room); ≥1000 medium = centre | club panel with home/away switch; narrow = tab bar (Pitch, Home, Away, centre tabs) with a vertical pitch. Below 1200px the benches move behind a "Bench" toggle instead of dugouts.
 - **The pitch is the squad view** (owner's call: don't list the XI twice). Counters are player photos in a kit-colored ring with the shirt number as a badge (`PlayerDisc`), plus rating, events and a season G/A line. The bench lives in **dugouts** beside the pitch (`Dugout`), or in a two-row strip under it when side dugouts would shrink the pitch too much, or behind a "Bench" view on narrow screens.
+- Counters never overlap: `placeCounters` starts from the formation spots and nudges colliding counters apart (sideways along their line, or a little along the pitch), inside the touchlines. Box sizes are measured from the real name widths. On a cramped pitch (`compact`) the season/sub line under the name is dropped (it's in the tooltip).
+- Type sizes were tuned by the owner: Tailwind's named sizes are 1.1x (`--text-*` in `styles.css`), arbitrary `text-[Npx]` values are already scaled, and the pitch, pitch bar and benches run at about 1.21x.
+- The Story tab is two columns, first half | second half (stacked on narrow, the half in play on top).
 - Club panels hold what the pitch doesn't: coach, load, season profile, absences (with return dates), season leaders, results, next fixtures. `FitStack` drops whole sections that don't fit (priority order), never cuts one in half. The full squad table is a modal ("Full squad").
 - Club panels use container queries (`@container`) so columns appear as they widen.
 - Main grids need `grid-rows-[minmax(0,1fr)]`, or a tall panel grows the row past the viewport.
