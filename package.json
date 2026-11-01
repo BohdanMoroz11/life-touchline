@@ -6,7 +6,8 @@
     "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch server/index.ts\" \"vite\"",
     "build": "vite build",
     "start": "vite build && tsx server/index.ts",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "live": "concurrently -k -n web,api \"vite build --watch\" \"tsx watch server/index.ts\""
   },
   "repository": {
     "type": "git",

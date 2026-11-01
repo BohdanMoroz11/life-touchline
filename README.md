@@ -55,12 +55,7 @@ npm install
 npm start          # builds the frontend, serves everything on http://127.0.0.1:5190
 ```
 
-The server binds to `127.0.0.1` only. From your own machine:
-
-```bash
-ssh -L 5190:127.0.0.1:5190 <server>
-# then open http://localhost:5190
-```
+The live version runs in a container at https://football.bohdanmoroz.com, behind the shared login from the [hub](https://github.com/BohdanMoroz11/hub) repo. Files changed in the primary checkout go live automatically.
 
 Development: `npm run dev` (Vite on :5183 with hot reload, API on :5190). `PORT`/`HOST` override the API address.
 

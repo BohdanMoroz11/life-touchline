@@ -9,7 +9,7 @@ import { getTable } from "./standings.ts";
 import { cacheStats } from "./espn.ts";
 
 const PORT = Number(process.env.PORT ?? 5190);
-const HOST = process.env.HOST ?? "127.0.0.1"; // local only; reach it via SSH tunnel
+const HOST = process.env.HOST ?? "127.0.0.1"; // local default; the container sets HOST and PORT
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();

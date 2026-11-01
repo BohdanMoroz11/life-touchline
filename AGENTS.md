@@ -14,7 +14,7 @@ Competitions: LaLiga, Premier League, Bundesliga, Champions League (one line eac
 - **Frontend**: React 18 + Vite + Tailwind v4 + TanStack Query. `web/`
 - **Shared types**: `shared/types.ts`, the contract between server and UI. Change it first when adding data.
 - Hash routing in `web/src/lib.ts`: `#/`, `#/d/YYYYMMDD`, `#/m/:league/:id`, `#/m/:league/:id/p/:espnId~:fotmobId`.
-- Server binds `127.0.0.1:5190` (Courtside uses 5180). Reached via SSH tunnel.
+- See Deployment below. Outside the container, the API defaults to `127.0.0.1:5190` (Courtside uses 5180).
 
 ## Layout
 
@@ -86,3 +86,19 @@ Direction: **"tactics board under floodlights"**. Graphite night base (`night`, 
 - Live "if it ends now" for the other matches in the same matchday.
 - Copa del Rey / FA Cup / DFB-Pokal on the match list (just add to `LEAGUES`).
 - Persisted cache if sources get slow.
+
+<!-- platform:start -->
+## Deployment
+
+Live at https://football.bohdanmoroz.com, behind the shared hub login. Do not add auth to this app.
+
+- The `football-tracker` container mounts this repo's primary checkout and runs `npm run live`. Caddy reaches it at `football-tracker:3000`. No host port is published.
+- There is no build or deploy step. Files changed in the primary checkout go live automatically, so `main` there is production.
+- Worktree changes are not live until merged into the primary checkout's `main`. If merged on GitHub, run `git pull` in the primary checkout.
+- Preview in a worktree with `npm run dev`. Don't use the primary checkout for experiments.
+- If dependencies change, once they're on `main` run `npm install` in the primary checkout, on the host, then `docker restart football-tracker`.
+- If `compose.yml` changes, run `docker compose up -d` in the primary checkout.
+- Logs: `docker logs -f football-tracker`.
+- Never use root or an Alpine image: files and `node_modules` are shared with the host.
+- Routing, login and the app list belong to the `hub` repo. Don't change them from here.
+<!-- platform:end -->
