@@ -247,7 +247,7 @@ export function RankNote({ rank, of = 20, className = "" }: { rank?: number; of?
   return <span className={`font-ui text-[12px] tnum ${cls} ${className}`} data-tip={`${ordinal(rank)} of ${of} in the league`}>{ordinal(rank)}</span>;
 }
 
-export function Kit({ color, alt, number, size = 30, probable, className = "" }: { color: string; alt?: string; number?: string; size?: number; probable?: boolean; className?: string }) {
+export function Kit({ color, alt, number, size = 30, probable, className = "", numberScale = 0.5 }: { color: string; alt?: string; number?: string; size?: number; probable?: boolean; className?: string; numberScale?: number }) {
   const bg = `#${color.replace("#", "")}`;
   // Use the kit's second color for the number when it stands out from the shirt, else plain black/white.
   const second = alt ? `#${alt.replace("#", "")}` : undefined;
@@ -255,7 +255,7 @@ export function Kit({ color, alt, number, size = 30, probable, className = "" }:
   return (
     <span
       className={`counter grid shrink-0 place-items-center rounded-full font-display font-extrabold leading-none tnum ${probable ? "counter-probable" : ""} ${className}`}
-      style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.5, border: `2px solid ${second ?? "rgba(255,255,255,.35)"}` }}
+      style={{ width: size, height: size, background: bg, color: fg, fontSize: size * numberScale, border: `2px solid ${second ?? "rgba(255,255,255,.35)"}` }}
     >
       {number}
     </span>

@@ -1,15 +1,20 @@
-import { Children, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Absentee, FixtureRow, LineupPlayer, MatchDetail, Side, SquadPlayer, TeamDetail } from "../../../shared/types";
 import { accent, euros, go, kickoff, ordinal, playerHash, relDays, resultColor, samePerson, shortDate, tenure, tint, useSize, yearsUntil } from "../lib";
 import { tip } from "../glossary";
-import { Crest, FormPills, Kit, Modal, Photo, RankNote, Rating, Term } from "./ui";
+import { Crest, FormPills, Kit, Modal, Photo, RankNote, Rating, Segmented, Term } from "./ui";
 import { CardIcon, kitOf } from "./Pitch";
 import { CoachModal } from "./CoachModal";
 import { ClubModal } from "./ClubModal";
 
 export type NumbersMode = "match" | "season";
+export type ClubSection = "missing" | "players" | "results" | "fixtures";
 
-export function ClubPanel({ m, side, team, mode }: { m: MatchDetail; side: Side; team?: TeamDetail; mode: NumbersMode }) {
+// Below this body height, Missing moves from above the tabs into them, so the tabs keep usable room.
+const MISSING_ABOVE_MIN_H = 760;
+
+export function ClubPanel({ m, side, team, mode, section, onSection }: { m: MatchDetail; side: Side; team?: TeamDetail; mode: NumbersMode; section: ClubSection; onSection: (s: ClubSection) => void }) {
+  const [bodyRef, { h: bodyH }] = useSize<HTMLDivElement>();
   const [coachOpen, setCoachOpen] = useState(false);
   const [clubOpen, setClubOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
@@ -18,18 +23,13 @@ export function ClubPanel({ m, side, team, mode }: { m: MatchDetail; side: Side;
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl bg-stand ring-1 ring-rule @container" style={{ ["--team" as string]: color }}>
       <ClubHeader m={m} side={side} team={team} onClub={() => setClubOpen(true)} />
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-3 pb-3 pt-2.5">
+      <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-2.5 px-3 pb-3 pt-2.5">
         <div className="grid shrink-0 gap-2.5 @lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <CoachCard m={m} side={side} team={team} onOpen={() => setCoachOpen(true)} />
           <LoadCard team={team} />
         </div>
-        <FitStack>
-          {team && team.profile.length > 0 && <Profile team={team} />}
-          <Missing m={m} side={side} team={team} />
-          {team && <Leaders m={m} side={side} team={team} />}
-          {team && <Results team={team} />}
-          {team && team.fixtures.length > 1 && <Upcoming team={team} m={m} />}
-        </FitStack>
+        {team && team.profile.length > 0 && <Profile team={team} />}
+        <ClubTabs m={m} side={side} team={team} section={section} onSection={onSection} missingAbove={bodyH === 0 || bodyH >= MISSING_ABOVE_MIN_H} />
         <button onClick={() => setSquadOpen(true)} disabled={!team} className="shrink-0 rounded-lg py-1.5 font-ui text-[14.5px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
           Full squad{team ? ` · ${team.squad.length} players` : ""}
         </button>
@@ -221,35 +221,39 @@ function SquadModal({ m, side, team, mode, onClose }: { m: MatchDetail; side: Si
   );
 }
 
-/** Stacks sections in priority order and drops whole sections that don't fit, so nothing is cut in half. */
-function FitStack({ children }: { children: ReactNode }) {
-  const [ref, { h }] = useSize<HTMLDivElement>();
-  const items = Children.toArray(children).filter(Boolean);
-  const [heights, setHeights] = useState<number[]>([]);
-  const measure = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = measure.current;
-    if (!el) return;
-    const hs = [...el.children].map((c) => (c as HTMLElement).offsetHeight);
-    if (hs.join() !== heights.join()) setHeights(hs);
-  });
-  let used = 0;
-  const show = items.map((_, i) => {
-    const need = (heights[i] ?? 0) + (i ? 10 : 0);
-    if (used + need > h) return false;
-    used += need;
-    return true;
-  });
+/**
+ * The lower half of a club column: the same tabs on both sides (the choice is shared, so you compare like with like).
+ * Missing sits above the tabs when there's room and becomes the first tab when there isn't. Bodies scroll inside.
+ */
+function ClubTabs({ m, side, team, section, onSection, missingAbove }: { m: MatchDetail; side: Side; team?: TeamDetail; section: ClubSection; onSection: (s: ClubSection) => void; missingAbove: boolean }) {
+  const missingCount = m.lineups[side].unavailable.length || (team?.squad.filter((p) => p.injury).length ?? 0);
+  const options: { value: ClubSection; label: ReactNode }[] = [
+    ...(missingAbove ? [] : [{ value: "missing" as const, label: <>Missing{missingCount > 0 && <span className="ml-1 text-red">{missingCount}</span>}</> }]),
+    { value: "players", label: "Players" },
+    { value: "results", label: "Results" },
+    { value: "fixtures", label: "Fixtures" },
+  ];
+  const active = options.some((o) => o.value === section) ? section : options[0].value;
   return (
-    <div ref={ref} className="relative min-h-0 flex-1 overflow-hidden">
-      {/* Invisible copy at natural height, for measuring. */}
-      <div ref={measure} aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-0">
-        {items.map((c, i) => <div key={i}>{c}</div>)}
+    <>
+      {/* Room for MAX_MISSING rows either way, so the tab rows line up across the two columns. */}
+      {missingAbove && <div className="min-h-[196px] shrink-0"><Missing m={m} side={side} team={team} /></div>}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Segmented size="sm" className="mb-2 shrink-0 self-start" value={active} onChange={onSection} options={options} />
+        <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
+          {active === "missing" && <Missing m={m} side={side} team={team} all />}
+          {!team ? (
+            active !== "missing" && <div className="h-24 animate-pulse rounded-lg bg-terrace/40" />
+          ) : active === "players" ? (
+            <Leaders m={m} side={side} team={team} />
+          ) : active === "results" ? (
+            <Results team={team} />
+          ) : active === "fixtures" ? (
+            <Upcoming team={team} m={m} />
+          ) : null}
+        </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        {items.map((c, i) => (show[i] ? <div key={i}>{c}</div> : null))}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -287,13 +291,14 @@ function Leaders({ m, side, team }: { m: MatchDetail; side: Side; team: TeamDeta
 
 const MAX_MISSING = 4;
 
-function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDetail }) {
+function Missing({ m, side, team, all }: { m: MatchDetail; side: Side; team?: TeamDetail; all?: boolean }) {
   const list = m.lineups[side].unavailable;
   // FotMob's match list when we have it; otherwise injuries flagged on the squad.
   const items = list.length
     ? list.map((u) => ({ name: u.name, photo: u.photo, status: u.status, reason: u.reason, returns: u.returns, pos: team?.squad.find((s) => samePerson(s.name, u.name))?.position, id: team?.squad.find((s) => samePerson(s.name, u.name))?.id, fm: u.fmId, value: u.marketValue }))
     : (team?.squad ?? []).filter((p) => p.injury).map((p) => ({ name: p.name, photo: p.photo, status: p.injury!.status, reason: p.injury!.reason, returns: p.injury!.returns, pos: p.position, id: p.id, fm: undefined, value: p.marketValue }));
   const sorted = [...items].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  const max = all ? Infinity : MAX_MISSING;
   return (
     <section>
       <div className="mb-1.5 flex justify-between font-ui text-[13px] font-semibold text-mute">
@@ -302,7 +307,7 @@ function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDet
       </div>
       {items.length ? (
         <ul className="space-y-1">
-          {sorted.slice(0, MAX_MISSING).map((u) => (
+          {sorted.slice(0, max).map((u) => (
             <li key={u.name}>
               <button onClick={() => (u.id || u.fm) && go(playerHash(m.league, m.id, u.id ?? `fm${u.fm}`, u.fm))} className="flex w-full items-center gap-2.5 rounded-md px-1 py-0.5 text-left hover:bg-terrace/70">
                 <Photo src={u.photo} name={u.name} className="size-8" />
@@ -316,9 +321,9 @@ function Missing({ m, side, team }: { m: MatchDetail; side: Side; team?: TeamDet
               </button>
             </li>
           ))}
-          {sorted.length > MAX_MISSING && (
-            <li className="px-1 font-ui text-[13px] text-mute" data-tip={sorted.slice(MAX_MISSING).map((u) => `${u.name}${u.returns ? ` (back: ${u.returns})` : ""}`).join("\n")}>
-              +{sorted.length - MAX_MISSING} more
+          {sorted.length > max && (
+            <li className="px-1 font-ui text-[13px] text-mute" data-tip={sorted.slice(max).map((u) => `${u.name}${u.returns ? ` (back: ${u.returns})` : ""}`).join("\n")}>
+              +{sorted.length - max} more
             </li>
           )}
         </ul>
@@ -347,18 +352,18 @@ function FixtureLine({ r, upcoming }: { r: FixtureRow; upcoming?: boolean }) {
 function Results({ team }: { team: TeamDetail }) {
   return (
     <section>
-      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">Recent results</div>
-      <ul className="space-y-1">{team.results.slice(0, 5).map((r) => <FixtureLine key={r.id} r={r} />)}</ul>
+      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">Last {Math.min(8, team.results.length)}, all competitions</div>
+      <ul className="space-y-1">{team.results.slice(0, 8).map((r) => <FixtureLine key={r.id} r={r} />)}</ul>
     </section>
   );
 }
 
 function Upcoming({ team, m }: { team: TeamDetail; m: MatchDetail }) {
-  const next = team.fixtures.filter((f) => f.id !== m.id).slice(0, 3);
-  if (!next.length) return null;
+  const next = team.fixtures.filter((f) => f.id !== m.id).slice(0, 8);
+  if (!next.length) return <p className="font-ui text-[14.5px] text-chalk/70">No fixtures scheduled yet.</p>;
   return (
     <section>
-      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">After this</div>
+      <div className="mb-1 font-ui text-[13px] font-semibold text-mute">After this match</div>
       <ul className="space-y-1">{next.map((r) => <FixtureLine key={r.id} r={r} upcoming />)}</ul>
     </section>
   );

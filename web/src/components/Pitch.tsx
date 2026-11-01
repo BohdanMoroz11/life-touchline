@@ -103,7 +103,8 @@ export function PlayerDisc({ p, kit, size, probable, dim }: { p: Pick<LineupPlay
   const [broken, setBroken] = useState(false);
   const ring = `#${kit.color.replace("#", "")}`;
   if (!p.photo || broken) return <Kit color={kit.color} alt={kit.alt} number={p.jersey} size={size} probable={probable} className={dim ? "opacity-50" : ""} />;
-  const badge = Math.max(15, Math.round(size * 0.4));
+  // Big enough to read the number at a glance; the badge is small, so the digits fill most of it.
+  const badge = Math.max(20, Math.round(size * 0.5));
   return (
     <span className={`relative inline-block shrink-0 ${dim ? "opacity-50" : ""}`} style={{ width: size, height: size }}>
       <img
@@ -115,8 +116,8 @@ export function PlayerDisc({ p, kit, size, probable, dim }: { p: Pick<LineupPlay
         style={{ border: `${size >= 40 ? 3 : 2}px solid ${ring}` }}
       />
       {p.jersey && (
-        <span className="absolute -bottom-0.5 -left-1">
-          <Kit color={kit.color} alt={kit.alt} number={p.jersey} size={badge} className="!border" />
+        <span className="absolute -bottom-1 -left-1.5">
+          <Kit color={kit.color} alt={kit.alt} number={p.jersey} size={badge} numberScale={0.66} className="!border" />
         </span>
       )}
     </span>
@@ -157,7 +158,7 @@ type Placed = { key: string; side: Side; p: LineupPlayer; x: number; y: number; 
  * Pixel positions for all 22 counters. Starts from the formation spots, then nudges overlapping counters apart,
  * mostly sideways along their line so the shape still reads, and keeps everyone inside the touchlines.
  */
-function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: number, ph: number, size: number, showSeason: boolean, compact: boolean, squad: SquadIndex): Placed[] {
+function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: number, ph: number, size: number, showSeason: boolean, compact: boolean, squad: SquadIndex): { items: Placed[]; clash: number } {
   const maxLabel = size * 2.3;
   const items: Placed[] = sides.flatMap((side) =>
     m.lineups[side].starters.map((p) => {
@@ -174,7 +175,9 @@ function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: num
     it.y = Math.min(ph - it.h / 2 - 1, Math.max(it.h / 2 + 1, it.y));
   };
   items.forEach(clamp);
-  for (let iter = 0; iter < 150; iter++) {
+  // First pass keeps lines intact (sideways pushes); if that can't settle, the second pass takes the shortest way out.
+  for (let iter = 0; iter < 220; iter++) {
+    const free = iter >= 120;
     let moved = false;
     for (let i = 0; i < items.length; i++) {
       for (let j = i + 1; j < items.length; j++) {
@@ -192,7 +195,7 @@ function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: num
         const dep = lateralIsY ? ox : oy;
         // A goalkeeper tucked against the back line moves up a bit rather than shoving the whole line wide.
         const reach = 0.45 * Math.min(lateralIsY ? Math.min(a.w, b.w) : Math.min(a.h, b.h), 40);
-        const alongDepth = dep < lat && dep <= Math.max(14, reach);
+        const alongDepth = dep < lat && (free || dep <= Math.max(14, reach));
         if (lateralIsY !== alongDepth) {
           const d = (dy === 0 ? (i % 2 ? 1 : -1) : Math.sign(dy)) * (oy / 2 + 0.5);
           a.y -= d;
@@ -208,7 +211,14 @@ function placeCounters(m: MatchDetail, sides: Side[], vertical: boolean, pw: num
     }
     if (!moved) break;
   }
-  return items;
+  let clash = 0;
+  for (let i = 0; i < items.length; i++)
+    for (let j = i + 1; j < items.length; j++) {
+      const ox = (items[i].w + items[j].w) / 2 - Math.abs(items[j].x - items[i].x);
+      const oy = (items[i].h + items[j].h) / 2 - Math.abs(items[j].y - items[i].y);
+      if (ox > 1 && oy > 1) clash++;
+    }
+  return { items, clash };
 }
 
 function Counter({ p, side, m, at, size, showSeason, compact, sp }: { p: LineupPlayer; side: Side; m: MatchDetail; at: Placed; size: number; showSeason: boolean; compact: boolean; sp?: SquadPlayer }) {
@@ -378,14 +388,22 @@ export function Pitch({ m, mode, showSeason, squad, dugouts = true }: { m: Match
   const across = vertical ? pw : ph;
   const along = vertical ? ph : pw;
   const compact = across / 5.3 - NAME_PX - LINE_PX - 14 < 34;
-  const size = Math.round(Math.max(28, Math.min(60, across / 7.1, along / 10.8, across / 5.3 - NAME_PX - (compact ? 0 : LINE_PX) - 14)));
+  const maxSize = Math.round(Math.max(28, Math.min(60, across / 7.1, along / 10.8, across / 5.3 - NAME_PX - (compact ? 0 : LINE_PX) - 14)));
   const hasXI = (s: Side) => m.lineups[s].starters.length >= 11 && m.lineups[s].starters.every((p) => p.x != null);
   const xi = (["home", "away"] as Side[]).filter(hasXI);
-  const placed = useMemo(
-    () => (mode === "lineups" && pw > 0 ? placeCounters(m, xi, vertical, pw, ph, size, showSeason, compact, squad) : []),
+  // Crowded shapes (a full back line plus deep midfielders on one side) may not fit at full size: shrink the faces until they do.
+  const { placed, size } = useMemo(() => {
+    if (mode !== "lineups" || pw <= 0) return { placed: [] as Placed[], size: maxSize };
+    let best = { placed: [] as Placed[], size: maxSize };
+    for (const k of [1, 0.9, 0.8, 0.72]) {
+      const sz = Math.max(26, Math.round(maxSize * k));
+      const r = placeCounters(m, xi, vertical, pw, ph, sz, showSeason, compact, squad);
+      best = { placed: r.items, size: sz };
+      if (!r.clash) break;
+    }
+    return best;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m, xi.join(), vertical, pw, ph, size, showSeason, compact, squad, mode],
-  );
+  }, [m, xi.join(), vertical, pw, ph, maxSize, showSeason, compact, squad, mode]);
 
   const pitch = (
     <div className="turf relative shrink-0 overflow-hidden rounded-lg ring-1 ring-black/40" style={{ width: pw, height: ph, ["--stripe-dir" as string]: vertical ? "180deg" : "90deg" }}>

@@ -4,7 +4,7 @@ import { accent, go, kickoff, ordinal, tint, useMatch, useTeam, useWidth } from 
 import { tip } from "../glossary";
 import { Crest, ErrorNote, Flash, Segmented, Spinner, Term } from "./ui";
 import { Momentum, Pitch, type PitchMode, type SquadIndex } from "./Pitch";
-import { ClubPanel, type NumbersMode } from "./ClubPanel";
+import { ClubPanel, type ClubSection, type NumbersMode } from "./ClubPanel";
 import { TabBody, centerTabs, type CenterTab } from "./CenterTabs";
 import { PlayerModal } from "./PlayerModal";
 import { FormationButton } from "./Shape";
@@ -21,6 +21,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
   const [panelSide, setPanelSide] = useState<Side>("home");
   const [narrowTab, setNarrowTab] = useState<string>("pitch");
   const [pitchMode, setPitchMode] = useState<PitchMode>("lineups");
+  const [clubSection, setClubSection] = useState<ClubSection>("players");
 
   useEffect(() => {
     setNumbers(null);
@@ -53,7 +54,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
 
   const panel = (s: Side) =>
     teams[s] || !(s === "home" ? home : away).isLoading ? (
-      <ClubPanel m={m} side={s} team={teams[s]} mode={mode} />
+      <ClubPanel m={m} side={s} team={teams[s]} mode={mode} section={clubSection} onSection={setClubSection} />
     ) : (
       <div className="h-full rounded-xl bg-stand ring-1 ring-rule"><Spinner label={`Loading ${m[s].name}`} /></div>
     );
