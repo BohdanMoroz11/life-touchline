@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from "react";
 import type { Absentee, FixtureRow, LineupPlayer, MatchDetail, Side, SquadPlayer, TeamDetail } from "../../../shared/types";
-import { accent, euros, go, kickoff, ordinal, playerHash, relDays, resultColor, samePerson, shortDate, tenure, tint, useSize, yearsUntil } from "../lib";
+import { accent, euros, go, kickoff, ordinal, playerHash, relDays, resultColor, samePerson, shortDate, tenure, tint, useLeaders, useSize, yearsUntil } from "../lib";
 import { tip } from "../glossary";
 import { Crest, FormPills, Kit, Modal, Photo, RankNote, Rating, Segmented, Term } from "./ui";
 import { CardIcon, kitOf } from "./Pitch";
 import { CoachModal } from "./CoachModal";
 import { ClubModal } from "./ClubModal";
+import { LeaderBoards, LeadersModal } from "./Leaders";
+import type { TeamLeaders } from "../../../shared/types";
 
 export type NumbersMode = "match" | "season";
 export type ClubSection = "missing" | "players" | "results" | "fixtures";
@@ -18,6 +20,9 @@ export function ClubPanel({ m, side, team, mode, section, onSection }: { m: Matc
   const [coachOpen, setCoachOpen] = useState(false);
   const [clubOpen, setClubOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+  // undefined = closed; "" = open on the first board.
+  const [leadersAt, setLeadersAt] = useState<string>();
+  const leaders = useLeaders(team).data;
   const ref = m[side];
   const color = accent(ref.color, ref.altColor);
   return (
@@ -29,11 +34,17 @@ export function ClubPanel({ m, side, team, mode, section, onSection }: { m: Matc
           <LoadCard team={team} />
         </div>
         {team && team.profile.length > 0 && <Profile team={team} />}
-        <ClubTabs m={m} side={side} team={team} section={section} onSection={onSection} missingAbove={bodyH === 0 || bodyH >= MISSING_ABOVE_MIN_H} />
-        <button onClick={() => setSquadOpen(true)} disabled={!team} className="shrink-0 rounded-lg py-1.5 font-ui text-[14.5px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
-          Full squad{team ? ` · ${team.squad.length} players` : ""}
-        </button>
+        <ClubTabs m={m} side={side} team={team} leaders={leaders} onLeaders={(k) => setLeadersAt(k ?? "")} section={section} onSection={onSection} missingAbove={bodyH === 0 || bodyH >= MISSING_ABOVE_MIN_H} />
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+          <button onClick={() => setLeadersAt("")} disabled={!leaders?.boards.length} className="rounded-lg py-1.5 font-ui text-[14.5px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
+            Leaders
+          </button>
+          <button onClick={() => setSquadOpen(true)} disabled={!team} className="rounded-lg py-1.5 font-ui text-[14.5px] font-semibold text-chalk/85 ring-1 ring-rule hover:bg-terrace disabled:opacity-40">
+            Full squad{team ? ` · ${team.squad.length}` : ""}
+          </button>
+        </div>
       </div>
+      {leadersAt != null && team && leaders && <LeadersModal m={m} side={side} team={team} leaders={leaders} start={leadersAt || undefined} onClose={() => setLeadersAt(undefined)} />}
       {squadOpen && <SquadModal m={m} side={side} team={team} mode={mode} onClose={() => setSquadOpen(false)} />}
       {coachOpen && team?.coach && <CoachModal team={team} shape={m.shape?.[side]} onClose={() => setCoachOpen(false)} />}
       {clubOpen && team && <ClubModal team={team} m={m} onClose={() => setClubOpen(false)} />}
@@ -225,7 +236,7 @@ function SquadModal({ m, side, team, mode, onClose }: { m: MatchDetail; side: Si
  * The lower half of a club column: the same tabs on both sides (the choice is shared, so you compare like with like).
  * Missing sits above the tabs when there's room and becomes the first tab when there isn't. Bodies scroll inside.
  */
-function ClubTabs({ m, side, team, section, onSection, missingAbove }: { m: MatchDetail; side: Side; team?: TeamDetail; section: ClubSection; onSection: (s: ClubSection) => void; missingAbove: boolean }) {
+function ClubTabs({ m, side, team, leaders, onLeaders, section, onSection, missingAbove }: { m: MatchDetail; side: Side; team?: TeamDetail; leaders?: TeamLeaders; onLeaders: (key?: string) => void; section: ClubSection; onSection: (s: ClubSection) => void; missingAbove: boolean }) {
   const missingCount = m.lineups[side].unavailable.length || (team?.squad.filter((p) => p.injury).length ?? 0);
   const options: { value: ClubSection; label: ReactNode }[] = [
     ...(missingAbove ? [] : [{ value: "missing" as const, label: <>Missing{missingCount > 0 && <span className="ml-1 text-red">{missingCount}</span>}</> }]),
@@ -245,7 +256,7 @@ function ClubTabs({ m, side, team, section, onSection, missingAbove }: { m: Matc
           {!team ? (
             active !== "missing" && <div className="h-24 animate-pulse rounded-lg bg-terrace/40" />
           ) : active === "players" ? (
-            <Leaders m={m} side={side} team={team} />
+            leaders?.boards.length ? <LeaderBoards m={m} team={team} leaders={leaders} onOpen={onLeaders} /> : <Leaders m={m} side={side} team={team} />
           ) : active === "results" ? (
             <Results team={team} />
           ) : active === "fixtures" ? (

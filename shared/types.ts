@@ -262,6 +262,8 @@ export type SquadPlayer = {
   recentStarts?: number;
   importance: number; // 0..100
   rating?: number; // season average rating if available
+  fmId?: number;
+  tmId?: string;
 };
 
 export type Coach = {
@@ -319,9 +321,28 @@ export type TeamDetail = {
   venue?: { name: string; city?: string; capacity?: number; opened?: number };
   honours: { title: string; count: number; last?: string }[];
   fmId?: number;
+  tmId?: string;
   /** Last few matches' starting XIs (all competitions), newest first. */
   recentXIs: { matchId: string; date: string; comp: string; opponent: string; formation?: string; starters: string[] }[];
 };
+
+/** How a player arrived at a club (Transfermarkt). fee 0 = free transfer; no fee = undisclosed or not applicable. */
+export type Transfer = { date: string; fee?: number; kind: "transfer" | "loan" | "free" | "youth" | "return"; marketValue?: number; /** Loan made permanent during the spell. */ boughtFor?: number };
+
+// ---------- leaders ----------
+
+export type LeaderRow = { name: string; fmId?: number; tmId?: string; photo?: string; value: number; teamRank: number; leagueRank?: number };
+export type LeaderBoard = {
+  key: string;
+  label: string; // "Goals"
+  unit: string; // "goals", shown after the number
+  format: "int" | "dec1" | "dec2" | "eur";
+  source: "FotMob" | "Transfermarkt";
+  /** Players ranked in the league list (FotMob lists have a minutes threshold for per-90 and rating). */
+  leagueSize: number;
+  rows: LeaderRow[];
+};
+export type TeamLeaders = { league: string; leagueName: string; boards: LeaderBoard[] };
 
 export type PlayerDetail = {
   id: string;
@@ -342,7 +363,7 @@ export type PlayerDetail = {
   /** This season per competition. */
   season: { comp: string; apps?: number; starts?: number; minutes?: number; goals?: number; assists?: number; rating?: number; shots?: number; sot?: number; yc?: number; rc?: number }[];
   recent: { date: string; comp: string; opponent: string; home: boolean; score?: string; result?: "W" | "D" | "L"; minutes?: number; goals?: number; assists?: number; rating?: number; potm?: boolean; bench?: boolean }[];
-  career: { club: string; from?: string; to?: string; apps?: number; goals?: number; assists?: number; loan?: boolean }[];
+  career: { club: string; from?: string; to?: string; apps?: number; goals?: number; assists?: number; loan?: boolean; transfer?: Transfer }[];
   international?: { team: string; apps?: number; goals?: number };
   /** Percentiles vs same position, 0..1. */
   traits?: { title: string; items: { label: string; value: number }[] };

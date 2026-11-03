@@ -20,14 +20,15 @@ Competitions: LaLiga, Premier League, Bundesliga, Champions League (one line eac
 
 ```
 server/
-  index.ts      routes: /api/matches, /api/match/:league/:id, /api/team/:league/:id?fm=&at=, /api/table/:league, /api/player/:id?fm=
+  index.ts      routes: /api/matches, /api/match/:league/:id, /api/team/:league/:id?fm=&at=, /api/table/:league, /api/player/:id?fm=&tm=, /api/leaders/:league?fm=&tm=
   espn.ts       ESPN URLs, fetch + in-memory TTL cache (cached()), mapLimit, soft() for optional sources
   match.ts      scoreboard -> match cards; summary -> MatchDetail (lineups, events, stats, shots, momentum estimate, odds, h2h)
   enrich.ts     FotMob over the match: ratings, photos, xG, momentum, shot map with xG, referee, weather, injuries, insights
   probable.ts   probable XI from recent ESPN lineups minus FotMob's unavailable list
   formation.ts  formation slot tables -> pitch coordinates
   team.ts       club context: squad (ESPN stats + FotMob + TM), coach (FotMob career), fixtures, load, season profile
-  player.ts     player sheet (FotMob profile + ESPN splits)
+  player.ts     player sheet (FotMob profile + ESPN splits + TM transfer fees on the career)
+  leaders.ts    team leaders with league ranks (FotMob league stat lists, TM values across the league)
   fotmob.ts tm.ts standings.ts leagues.ts lore.ts data.ts (match orchestration)
 data/lore.json, data/coaches.json   hand-written club and coach notes
 web/src/
@@ -65,6 +66,7 @@ Direction: **"tactics board under floodlights"**. Graphite night base (`night`, 
 - Type sizes were tuned by the owner: Tailwind's named sizes are 1.1x (`--text-*` in `styles.css`), arbitrary `text-[Npx]` values are already scaled, and the pitch, pitch bar and benches run at about 1.21x.
 - The Story tab is two columns, first half | second half (stacked on narrow, the half in play on top).
 - Club panels hold what the pitch doesn't: coach, load, season profile, then Missing and a tab row (Players / Results / Fixtures) that is **identical on both sides** (one shared choice, so you compare like with like; bodies scroll inside). Missing sits above the tabs when the column is tall enough, else it becomes the first tab. Never let the two columns show different sections. The full squad table is a modal ("Full squad").
+- Players tab = leader boards (leader with photo, next three, league rank; scrolls inside). "All leaders" / the Leaders button open the full per-team lists for every stat with team and league rank. The player sheet shows the same ranks ("Rankings", and next to market value). Falls back to the old four ESPN cards when FotMob/TM leaders are missing.
 - Club panels use container queries (`@container`) so columns appear as they widen.
 - Main grids need `grid-rows-[minmax(0,1fr)]`, or a tall panel grows the row past the viewport.
 - One numbers toggle (This match / Season) drives pitch badges and squad columns; it defaults to the match once it has started.

@@ -1,16 +1,25 @@
 import { useState } from "react";
-import type { MatchDetail, PlayerDetail, Side } from "../../../shared/types";
-import { accent, euros, ratingColor, resultColor, shortDate, usePlayer } from "../lib";
+import type { LeaderBoard, LeaderRow, MatchDetail, PlayerDetail, Side, TeamDetail } from "../../../shared/types";
+import { accent, euros, leaderValue, ordinal, ratingColor, resultColor, shortDate, useLeaders, usePlayer } from "../lib";
+import { playerRanks } from "./Leaders";
 import { tip } from "../glossary";
 import { ErrorNote, Label, Modal, Photo, Rating, Segmented, Spinner } from "./ui";
 
 type Tab = "overview" | "matches" | "career";
 
-export function PlayerModal({ id, fm, m, onClose }: { id: string; fm?: string; m: MatchDetail; onClose: () => void }) {
-  const q = usePlayer(id, fm);
+export function PlayerModal({ id, fm, m, teams, onClose }: { id: string; fm?: string; m: MatchDetail; teams: Partial<Record<Side, TeamDetail>>; onClose: () => void }) {
+  const isHim = (p: { id: string; fmId?: number }) => p.id === id || (!!fm && String(p.fmId) === fm);
+  // The squad knows the player even when he isn't in today's lineup (leaders, Missing, full squad).
+  const side: Side | undefined =
+    (["home", "away"] as Side[]).find((s) => [...m.lineups[s].starters, ...m.lineups[s].bench].some(isHim)) ?? (["home", "away"] as Side[]).find((s) => teams[s]?.squad.some(isHim));
+  const team = side ? teams[side] : undefined;
+  const sp = team?.squad.find(isHim);
+  const q = usePlayer(id, fm, sp?.tmId, !side || !!team);
+  const leaders = useLeaders(team).data;
+  const ranks = playerRanks(leaders, sp?.fmId ?? (fm ? Number(fm) : undefined), sp?.tmId);
+  const valueRank = ranks.find((r) => r.board.key === "value")?.row;
   const [tab, setTab] = useState<Tab>("overview");
-  const side: Side | undefined = (["home", "away"] as Side[]).find((s) => [...m.lineups[s].starters, ...m.lineups[s].bench].some((p) => p.id === id || String(p.fmId) === fm));
-  const lp = side ? [...m.lineups[side].starters, ...m.lineups[side].bench].find((p) => p.id === id || String(p.fmId) === fm) : undefined;
+  const lp = side ? [...m.lineups[side].starters, ...m.lineups[side].bench].find(isHim) : undefined;
   const color = side ? accent(m[side].color, m[side].altColor) : "#8d99a5";
   const p = q.data;
   return (
@@ -46,7 +55,7 @@ export function PlayerModal({ id, fm, m, onClose }: { id: string; fm?: string; m
                   <div className="mt-0.5 text-xs text-mute">this match</div>
                 </div>
               )}
-              {p.marketValue && <Fact label="market value" value={euros(p.marketValue)!} k="marketValue" />}
+              {(valueRank || p.marketValue) && <Fact label="market value" value={euros(valueRank?.value ?? p.marketValue)!} k="marketValue" sub={valueRank ? `${ordinal(valueRank.teamRank)} in team, ${ordinal(valueRank.leagueRank!)} in ${leaders!.leagueName}` : undefined} />}
               {p.contractUntil && <Fact label="contract until" value={new Date(p.contractUntil).getFullYear().toString()} k="contract" />}
               {p.international?.apps != null && <Fact label={`${p.international.team} caps`} value={`${p.international.apps}`} sub={p.international.goals ? `${p.international.goals} goals` : undefined} />}
               {p.positions && p.positions.length > 1 && <Fact label="positions" value={p.positions.join(" / ")} />}
@@ -63,7 +72,7 @@ export function PlayerModal({ id, fm, m, onClose }: { id: string; fm?: string; m
             />
           </header>
           <div className="scroll-thin min-h-0 overflow-auto p-5">
-            {tab === "overview" && <Overview p={p} m={m} lpStats={lp?.fm} />}
+            {tab === "overview" && <Overview p={p} m={m} lpStats={lp?.fm} ranks={ranks} team={team} league={leaders?.leagueName} />}
             {tab === "matches" && <Matches p={p} />}
             {tab === "career" && <Career p={p} />}
           </div>
@@ -82,7 +91,7 @@ function Fact({ label, value, k, sub }: { label: string; value: string; k?: stri
   );
 }
 
-function Overview({ p, m, lpStats }: { p: PlayerDetail; m: MatchDetail; lpStats?: Record<string, number> }) {
+function Overview({ p, m, lpStats, ranks, team, league }: { p: PlayerDetail; m: MatchDetail; lpStats?: Record<string, number>; ranks: { board: LeaderBoard; row: LeaderRow }[]; team?: TeamDetail; league?: string }) {
   const cols: [keyof PlayerDetail["season"][number], string, string?][] = [
     ["apps", "Apps"],
     ["starts", "Starts"],
@@ -118,6 +127,23 @@ function Overview({ p, m, lpStats }: { p: PlayerDetail; m: MatchDetail; lpStats?
                 </div>
               ) : null,
             )}
+          </div>
+        </section>
+      )}
+      {ranks.length > 0 && team && (
+        <section>
+          <Label className="mb-1.5" aside={`${league} season so far`}>Rankings</Label>
+          <div className="grid gap-x-5 gap-y-1 font-ui text-[14.5px] sm:grid-cols-2">
+            {ranks.map(({ board: b, row: r }) => (
+              <div key={b.key} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-3 border-b border-rule/40 py-0.5" data-tip={`${r.leagueRank ? `${ordinal(r.leagueRank)} of ${b.leagueSize} ranked players in ${league}` : ""}`}>
+                <span className="truncate text-chalk/80">{b.label}</span>
+                <b className="font-display text-lg font-extrabold leading-none tnum">{leaderValue(b, r.value)}</b>
+                <span className="min-w-[170px] whitespace-nowrap text-right text-[13px] text-mute tnum">
+                  <span className={r.teamRank === 1 ? "font-semibold text-chalk" : ""}>{ordinal(r.teamRank)} in {team.short}</span>
+                  {r.leagueRank && <> · <span className={r.leagueRank <= 10 ? "font-semibold text-chalk" : ""}>{ordinal(r.leagueRank)}</span> in {league}</>}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -238,21 +264,43 @@ function Matches({ p }: { p: PlayerDetail }) {
 function Career({ p }: { p: PlayerDetail }) {
   if (!p.career.length) return <p className="font-ui text-sm text-mute">No career data.</p>;
   const yr = (iso?: string) => (iso ? new Date(iso).getFullYear() : undefined);
+  const spent = p.career.reduce((n, c) => n + (c.transfer?.kind === "transfer" ? c.transfer.fee ?? 0 : 0) + (c.transfer?.boughtFor ?? 0), 0);
   return (
-    <ol className="relative space-y-1 border-l border-rule pl-4">
-      {p.career.map((c, i) => (
-        <li key={i} className="relative grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 font-ui text-sm">
-          <span className={`absolute -left-[21px] top-1.5 size-2.5 rounded-full ${i === 0 ? "bg-[var(--team)]" : "bg-rule"}`} />
-          <div className="min-w-0">
-            <span className="font-semibold">{c.club}</span>
-            {c.loan && <span className="ml-1.5 rounded bg-terrace px-1 text-[11px] text-mute">loan</span>}
-            <span className="ml-2 text-xs text-mute tnum">{yr(c.from) ?? "?"}–{c.to ? yr(c.to) : "now"}</span>
-          </div>
-          <span className="text-xs text-chalk/80 tnum">
-            {c.apps != null ? `${c.apps} apps` : ""}{c.goals != null ? ` · ${c.goals} goals` : ""}{c.assists != null ? ` · ${c.assists} assists` : ""}
-          </span>
-        </li>
-      ))}
-    </ol>
+    <>
+      {spent > 0 && <p className="mb-3 font-ui text-sm text-mute">Total transfer fees <b className="font-display text-lg font-extrabold text-chalk">{euros(spent)}</b></p>}
+      <ol className="relative space-y-1 border-l border-rule pl-4">
+        {p.career.map((c, i) => (
+          <li key={i} className="relative grid grid-cols-[minmax(0,1fr)_96px_auto] items-baseline gap-3 font-ui text-sm">
+            <span className={`absolute -left-[21px] top-1.5 size-2.5 rounded-full ${i === 0 ? "bg-[var(--team)]" : "bg-rule"}`} />
+            <div className="min-w-0">
+              <span className="font-semibold">{c.club}</span>
+              {c.loan && <span className="ml-1.5 rounded bg-terrace px-1 text-[11px] text-mute">loan</span>}
+              <span className="ml-2 text-xs text-mute tnum">{yr(c.from) ?? "?"}–{c.to ? yr(c.to) : "now"}</span>
+            </div>
+            <Fee t={c.transfer} />
+            <span className="text-xs text-chalk/80 tnum">
+              {c.apps != null ? `${c.apps} apps` : ""}{c.goals != null ? ` · ${c.goals} goals` : ""}{c.assists != null ? ` · ${c.assists} assists` : ""}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 font-ui text-xs text-faint">Fees from Transfermarkt.</p>
+    </>
+  );
+}
+
+function Fee({ t }: { t?: NonNullable<PlayerDetail["career"][number]["transfer"]> }) {
+  if (!t) return <span />;
+  const mv = t.marketValue ? `Market value at the time: ${euros(t.marketValue)}` : undefined;
+  const [text, strong, note] =
+    t.kind === "free" ? ["Free", false, "Free transfer"]
+    : t.kind === "youth" ? ["Academy", false, "Promoted from the club's youth or reserve side"]
+    : t.kind === "loan" ? [t.boughtFor ? `Loan → ${euros(t.boughtFor)}` : t.fee ? `Loan · ${euros(t.fee)}` : "Loan", !!t.boughtFor, t.boughtFor ? `Loan, then signed for ${euros(t.boughtFor)}` : t.fee ? `Loan fee ${euros(t.fee)}` : "Loan move"]
+    : t.fee ? [euros(t.fee)!, true, `Transfer fee ${euros(t.fee)}`]
+    : ["Undisclosed", false, "Fee not disclosed"];
+  return (
+    <span className={`text-right tnum ${strong ? "font-display text-base font-extrabold text-chalk" : "text-xs text-mute"}`} data-tip={[note, new Date(t.date).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }), mv].filter(Boolean).join("\n")}>
+      {text}
+    </span>
   );
 }

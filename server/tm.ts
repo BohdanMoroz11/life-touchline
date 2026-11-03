@@ -1,6 +1,7 @@
 // Transfermarkt's internal JSON API (tmapi). The website itself is behind a bot wall from servers, but this
 // API answers without headers. Used for what nobody else has: contracts, joined dates and squad values.
-import { TTL, cached, getJson } from "./espn.ts";
+import type { Transfer } from "../shared/types.ts";
+import { TTL, cached, getJson, mapLimit } from "./espn.ts";
 import { norm, similar } from "./fotmob.ts";
 
 const API = "https://tmapi-alpha.transfermarkt.technology";
@@ -46,7 +47,7 @@ export async function findClub(league: string, name: string) {
   return { club: best, valueRank: ranked.indexOf(best) + 1, of: clubs.length };
 }
 
-export type TmPlayer = { name: string; jersey?: string; contractUntil?: string; joined?: string; marketValue?: number; foot?: string; heightCm?: number; position?: string; formerClubs?: string; portrait?: string };
+export type TmPlayer = { id: string; name: string; jersey?: string; contractUntil?: string; joined?: string; marketValue?: number; foot?: string; heightCm?: number; position?: string; formerClubs?: string; portrait?: string };
 
 export function squad(clubId: string): Promise<TmPlayer[]> {
   return cached(`tm-squad:${clubId}`, TTL.day, async () => {
@@ -58,7 +59,9 @@ export function squad(clubId: string): Promise<TmPlayer[]> {
       const a = p.attributes ?? {};
       const cur = (p.clubAssignments ?? []).find((x: any) => x.type === "current");
       return {
-        name: p.displayName ?? p.name,
+        id: String(p.id),
+        // displayName is often an empty string, not missing.
+        name: p.displayName || p.name,
         jersey: cur?.shirtNumber != null ? String(cur.shirtNumber) : undefined,
         contractUntil: a.contractUntil ?? undefined,
         joined: cur?.start ?? undefined,
@@ -73,3 +76,25 @@ export function squad(clubId: string): Promise<TmPlayer[]> {
   });
 }
 
+
+/** Every player in a league (all clubs' squads), for league-wide value ranks. Slow the first time, so cached for a day. */
+export function leaguePlayers(league: string): Promise<(TmPlayer & { clubId: string })[]> {
+  return cached(`tm-league-players:${league}`, TTL.day, async () => {
+    const clubs = await leagueClubs(league);
+    const squads = await mapLimit(clubs, 4, (c) => squad(c.id).then((ps) => ps.map((p) => ({ ...p, clubId: c.id }))).catch(() => []));
+    return squads.flat();
+  });
+}
+
+/** A player's moves, newest first. */
+export function transfers(playerId: string): Promise<Transfer[]> {
+  return cached(`tm-transfers:${playerId}`, TTL.day, async () => {
+    const d = await get(`/transfer/history/player/${playerId}`);
+    return ((d?.history?.terminated ?? []) as any[]).map((x) => {
+      const type: string = x.typeDetails?.type ?? "";
+      const fee = x.details?.fee;
+      const kind: Transfer["kind"] = /LOAN_TRANSFER/.test(type) ? "loan" : /RETURNED/.test(type) ? "return" : /INTERNAL/.test(type) ? "youth" : /free/i.test(fee?.compact?.content ?? "") ? "free" : "transfer";
+      return { date: x.details?.date, kind, fee: kind === "free" ? 0 : fee?.value || undefined, marketValue: x.details?.marketValue?.value || undefined };
+    });
+  });
+}

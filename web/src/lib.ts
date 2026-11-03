@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import type { League, MatchCard, MatchDetail, PlayerDetail, Table, TeamDetail } from "../../shared/types";
+import type { League, LeaderBoard, MatchCard, MatchDetail, PlayerDetail, Table, TeamDetail, TeamLeaders } from "../../shared/types";
 
 // ---------- data ----------
 
@@ -60,13 +60,26 @@ export const useTable = (league?: string) =>
     staleTime: 5 * 60_000,
   });
 
-export const usePlayer = (id?: string, fm?: string) =>
+export const usePlayer = (id?: string, fm?: string, tm?: string, ready = true) =>
   useQuery({
-    queryKey: ["player", id, fm],
-    queryFn: () => get<PlayerDetail>(`/api/player/${id}${fm ? `?fm=${fm}` : ""}`),
-    enabled: !!id,
+    queryKey: ["player", id, fm, tm],
+    queryFn: () => get<PlayerDetail>(`/api/player/${id}?${new URLSearchParams({ ...(fm ? { fm } : {}), ...(tm ? { tm } : {}) })}`),
+    enabled: !!id && ready,
     staleTime: 30 * 60_000,
   });
+
+/** Team leaders with league ranks, for the club's own league. */
+export const useLeaders = (team?: TeamDetail) =>
+  useQuery({
+    queryKey: ["leaders", team?.league, team?.fmId, team?.tmId],
+    queryFn: () => get<TeamLeaders>(`/api/leaders/${team!.league}?${new URLSearchParams({ ...(team!.fmId ? { fm: String(team!.fmId) } : {}), ...(team!.tmId ? { tm: team!.tmId } : {}) })}`),
+    enabled: !!team && !!(team.fmId || team.tmId),
+    staleTime: 30 * 60_000,
+  });
+
+export function leaderValue(b: LeaderBoard, v: number) {
+  return b.format === "eur" ? euros(v) ?? "–" : b.format === "dec2" ? v.toFixed(2) : b.format === "dec1" ? v.toFixed(1) : String(Math.round(v));
+}
 
 // ---------- routing (hash based, no dependency) ----------
 // #/                         today's matches

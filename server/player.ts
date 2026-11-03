@@ -1,18 +1,20 @@
 // Player sheet: FotMob profile (ratings, career, traits) when we know the FotMob id, ESPN for the rest.
-import type { PlayerDetail } from "../shared/types.ts";
+import type { PlayerDetail, Transfer } from "../shared/types.ts";
 import { espn, soft } from "./espn.ts";
 import { compShort } from "./leagues.ts";
 import { fmPhoto, fotmob } from "./fotmob.ts";
+import { transfers as tmTransfers } from "./tm.ts";
 
 const num = (v: any) => (v == null || v === "" || isNaN(Number(v)) ? undefined : Number(v));
 
-export async function getPlayer(id: string, fmHint?: string): Promise<PlayerDetail> {
+export async function getPlayer(id: string, fmHint?: string, tmId?: string): Promise<PlayerDetail> {
   const espnId = id.startsWith("fm") ? undefined : id;
   const fmId = fmHint || (id.startsWith("fm") ? id.slice(2) : undefined);
-  const [bio, overview, fm] = await Promise.all([
+  const [bio, overview, fm, moves] = await Promise.all([
     espnId ? soft(espn.athlete(espnId), "athlete") : undefined,
     espnId ? soft(espn.athleteOverview(espnId), "athlete overview") : undefined,
     fmId ? soft(fotmob.person(fmId), "fotmob player") : undefined,
+    tmId ? soft(tmTransfers(tmId), "tm transfers") : undefined,
   ]);
   const a = bio?.athlete;
   if (!a && !fm) throw new Error("Player not found");
@@ -81,6 +83,7 @@ export async function getPlayer(id: string, fmHint?: string): Promise<PlayerDeta
     assists: num(e.assists),
     loan: /loan/i.test(e.transferType?.text ?? ""),
   }));
+  arrivals(moves ?? [], career).forEach((t, i) => (career[i].transfer = t));
   const nat = fm?.careerHistory?.careerItems?.["national team"]?.teamEntries?.find((e: any) => !/U\d\d/.test(e.team));
 
   const trophies: PlayerDetail["trophies"] = [];
@@ -113,4 +116,36 @@ export async function getPlayer(id: string, fmHint?: string): Promise<PlayerDeta
     trophies: [...merged.entries()].map(([title, count]) => ({ title, count })).sort((x, y) => y.count - x.count),
     news: ((overview?.news ?? []) as any[]).slice(0, 6).map((n) => ({ headline: n.headline, published: n.published, link: n.links?.web?.href })),
   };
+}
+
+const DAY = 86400_000;
+
+/**
+ * Pair Transfermarkt moves with FotMob career spells by start date. One move per spell, closest pairs first,
+ * and loans only with loan spells, so a one-day "return" spell doesn't steal the next club's fee.
+ */
+function arrivals(moves: Transfer[], spells: { from?: string; to?: string; loan?: boolean }[]): (Transfer | undefined)[] {
+  const pairs: { s: number; m: number; d: number }[] = [];
+  spells.forEach((sp, s) => {
+    if (!sp.from) return;
+    const t = Date.parse(sp.from);
+    moves.forEach((mv, m) => {
+      const d = Math.abs(Date.parse(mv.date) - t);
+      if (mv.kind !== "return" && (mv.kind === "loan") === !!sp.loan && d <= 45 * DAY) pairs.push({ s, m, d });
+    });
+  });
+  const out: (Transfer | undefined)[] = spells.map(() => undefined);
+  const used = new Set<number>();
+  for (const { s, m } of pairs.sort((a, b) => a.d - b.d)) {
+    if (out[s] || used.has(m)) continue;
+    used.add(m);
+    out[s] = moves[m];
+  }
+  // A loan made permanent during the spell (Mbappé to PSG): show the fee it became.
+  return out.map((mv, s) => {
+    if (mv?.kind !== "loan") return mv;
+    const end = spells[s].to ? Date.parse(spells[s].to!) : Infinity;
+    const bought = moves.find((x) => x.kind === "transfer" && x.fee && Date.parse(x.date) > Date.parse(mv.date) && Date.parse(x.date) < end - 45 * DAY);
+    return bought ? { ...mv, boughtFor: bought.fee } : mv;
+  });
 }

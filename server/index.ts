@@ -6,6 +6,7 @@ import { getMatch } from "./data.ts";
 import { getTeam } from "./team.ts";
 import { getPlayer } from "./player.ts";
 import { getTable } from "./standings.ts";
+import { getLeaders } from "./leaders.ts";
 import { cacheStats } from "./espn.ts";
 
 const PORT = Number(process.env.PORT ?? 5190);
@@ -29,7 +30,8 @@ app.get("/api/matches", route((req) => getMatches(q(req, "date") ?? new Date().t
 app.get("/api/match/:league/:id", route((req) => getMatch(req.params.league, req.params.id)));
 app.get("/api/team/:league/:id", route((req) => getTeam(req.params.league, req.params.id, { fm: q(req, "fm"), at: q(req, "at") })));
 app.get("/api/table/:league", route((req) => getTable(req.params.league)));
-app.get("/api/player/:id", route((req) => getPlayer(req.params.id, q(req, "fm"))));
+app.get("/api/player/:id", route((req) => getPlayer(req.params.id, q(req, "fm"), q(req, "tm"))));
+app.get("/api/leaders/:league", route((req) => getLeaders(req.params.league, Number(q(req, "fm")) || undefined, q(req, "tm"))));
 
 // In production mode serve the built frontend.
 const dist = path.join(root, "../dist");

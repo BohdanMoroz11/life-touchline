@@ -190,6 +190,8 @@ export async function getTeam(matchLeague: string, id: string, opts: { fm?: stri
       recentStarts: startCount.get(String(a.id)) ?? 0,
       rating: fm?.rating || undefined,
       importance: 0,
+      fmId: fm?.id ? Number(fm.id) : undefined,
+      tmId: tp?.id,
     };
     return p;
   });
@@ -265,6 +267,7 @@ export async function getTeam(matchLeague: string, id: string, opts: { fm?: stri
       .map((x) => ({ title: x.name, count: Number(x.won), last: String(x.seasonsWon ?? "").split(",")[0] || undefined }))
       .sort((a, b) => b.count - a.count),
     fmId,
+    tmId: tm?.club.id,
     recentXIs: (recent ?? []).map((r) => ({ matchId: r.matchId, date: r.date, comp: r.comp, opponent: r.opponent, formation: r.formation, starters: r.players.filter((p) => p.starter).map((p) => p.id) })),
   };
 }

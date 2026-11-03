@@ -139,7 +139,7 @@ export function MatchPage({ league, id, player }: { league: string; id: string; 
           </main>
         </>
       )}
-      {player && <PlayerModal id={player.id} fm={player.fm} m={m} onClose={() => go(`#/m/${league}/${id}`)} />}
+      {player && <PlayerModal id={player.id} fm={player.fm} m={m} teams={teams} onClose={() => go(`#/m/${league}/${id}`)} />}
     </div>
   );
 }

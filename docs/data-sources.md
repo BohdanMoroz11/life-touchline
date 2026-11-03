@@ -32,6 +32,7 @@ Base `https://www.fotmob.com/api/data/` (the old `/api/matchDetails` paths are d
 | `/teams?id=` | `fixtures.allFixtures.fixtures` (recent match ids for formation history), squad `positionIds`/`positionIdsDesc` (natural positions, e.g. `34,32` = `CB,RB`; also how position ids were mapped), squad (injuries, ratings, values, DOB, height), coach id, `history.trophyList` (honours), `overview.venue`, `stats.teams` (season stats with league ranks: xG, xGA, possession...). |
 | `/playerData?id=` | Players: career, per-competition season stats with ratings, recent matches, traits (percentiles), trophies, contract end, market value. Coaches: `careerHistory` (clubs with dates), `coachStats` (W/D/L per club), `trophies.coachTrophies`. |
 | `/search/suggest?term=` | FotMob team id when a match didn't give one. |
+| `/leagues?id=` → `stats.players[].fetchAllUrl` | League-wide player lists (`https://data.fotmob.com/stats/{league}/season/{season}/{stat}.json`, gzipped; `TopLists[0].StatList` with `ParticiantId` [sic], `TeamId`, `StatValue`, `Rank`). Team leaders and league ranks (`server/leaders.ts`). Rating and per-90 lists have a minutes threshold. |
 
 Photos: `https://images.fotmob.com/image_resources/playerimages/{fotmobId}.png` (players and coaches).
 
@@ -39,12 +40,13 @@ Players are paired across providers by shirt number + surname (`matchPerson`); f
 
 ## Transfermarkt internal API (`server/tm.ts`)
 
-`https://tmapi-alpha.transfermarkt.technology`, no headers. List endpoints batch with `ids[]=`. Used for contracts, joined dates and squad values.
+`https://tmapi-alpha.transfermarkt.technology`, no headers. List endpoints batch with `ids[]=`. Used for contracts, joined dates, squad values and transfer fees.
 
 | Endpoint | Used for |
 |---|---|
 | `/competition/{ES1,GB1,L1,IT1,FR1,...}/table` + `/clubs?ids[]=` | Clubs of a league with squad value (`averageMarketValue × squadSize`); also how ESPN names map to TM ids (fuzzy). |
-| `/club/{id}/squad` + `/players?ids[]=` | Contract until, market value, joined date, foot, height, position. |
+| `/club/{id}/squad` + `/players?ids[]=` | Contract until, market value, joined date, foot, height, position. `displayName` is often `""`; fall back to `name` (which can be the full legal name). All clubs' squads = league-wide value ranks (cached a day). |
+| `/transfer/history/player/{id}` | Career moves with fee, market value at the time and type (`STANDARD`, `ACTIVE_LOAN_TRANSFER`, `RETURNED_FROM_PREVIOUS_LOAN`, `INTERNAL_TRANSFER`; free = fee content "Free Transfer"). Paired with FotMob career spells by start date, one move per spell, loans with loan spells. |
 
 ## Hand-written (`data/`)
 
