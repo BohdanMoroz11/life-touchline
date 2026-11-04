@@ -2,6 +2,8 @@
 
 > ⚡ Vibe coded: agents wrote it, I steered. Maintained to the standard of "works on my machine".
 
+<img width="1466" height="833" alt="image" src="https://github.com/user-attachments/assets/9f0328cb-2ee7-4dfa-bb62-b64f043408e5" />
+
 A personal second screen for watching football. Pick a match and get one dashboard (no scrolling) with everything about both clubs and the game. Covers **LaLiga, Premier League, Bundesliga and the Champions League**.
 
 **Header**
