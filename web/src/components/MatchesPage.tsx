@@ -19,7 +19,7 @@ export function MatchesPage({ date }: { date?: string }) {
           </p>
         </div>
         <nav className="flex items-center gap-1 font-ui text-sm" aria-label="Change day">
-          {!inHub && <a href={HUB_URL} className="mr-3 px-1 py-1.5 text-mute hover:text-chalk">All apps</a>}
+          {!inHub && <a href={HUB_URL} className="mr-3 px-1 py-1.5 text-mute hover:text-chalk">Open hub</a>}
           <a href={`#/d/${shiftDay(day, -1)}`} className="rounded-lg px-3 py-1.5 ring-1 ring-rule hover:bg-terrace" aria-label="Previous day">‹</a>
           <a href="#/" className={`rounded-lg px-3 py-1.5 ring-1 ring-rule hover:bg-terrace ${!date ? "bg-terrace" : ""}`}>Today</a>
           <a href={`#/d/${shiftDay(day, 1)}`} className="rounded-lg px-3 py-1.5 ring-1 ring-rule hover:bg-terrace" aria-label="Next day">›</a>
