@@ -250,3 +250,8 @@ export function useWidth() {
   }, []);
   return w;
 }
+
+// The hub (apps.bohdanmoroz.com) can also show this app in an iframe next to its app sidebar.
+// inHub is true there: use it for anything that should differ inside the hub.
+export const HUB_URL = "https://apps.bohdanmoroz.com";
+export const inHub = window.self !== window.top;
