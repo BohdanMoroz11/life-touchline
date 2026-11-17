@@ -94,6 +94,8 @@ Direction: **"tactics board under floodlights"**. Graphite night base (`night`, 
 
 Live at https://football.bohdanmoroz.com, behind the shared hub login. Do not add auth to this app.
 
+The hub also shows this app in an iframe at https://apps.bohdanmoroz.com/football, next to a sidebar of all apps. `inHub` (exported from `web/src/lib.ts`) is true there. Use it for anything that should differ inside the hub. For now it hides the "All apps" link, because the sidebar already does that job.
+
 - The `football-tracker` container mounts this repo's primary checkout and runs `npm run live`. Caddy reaches it at `football-tracker:3000`. No host port is published.
 - There is no build or deploy step. Files changed in the primary checkout go live automatically, so `main` there is production.
 - Worktree changes are not live until merged into the primary checkout's `main`. If merged on GitHub, run `git pull` in the primary checkout.
